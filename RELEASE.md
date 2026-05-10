@@ -1,79 +1,79 @@
-# 发版说明
+# Release Guide
 
-本文档用于说明本仓库的标准发版流程、版本号规则、GitHub Actions 行为，以及发版后的核对步骤。
+This document explains the standard release flow, versioning rules, GitHub Actions behavior, and post-release checks for this repository.
 
-## 适用范围
+## Scope
 
-- 日常开发分支：`dev`
-- 稳定发布分支：`main`
-- 版本标签自动发布：`git push origin vX.Y.Z`
-- 手动发布工作流：`Create GitHub Release`
+- Day-to-day development branch: `dev`
+- Stable release branch: `main`
+- Automatic release by version tag: `git push origin vX.Y.Z`
+- Manual release workflow: `Create GitHub Release`
 
-## 版本号规则
+## Versioning Rules
 
-项目采用语义化版本号：
+The project uses semantic versioning:
 
 - `MAJOR.MINOR.PATCH`
-- 示例：`2.0.15`
+- Example: `2.0.15`
 
-约定：
+Conventions:
 
-- 推送形如 `v2.0.16` 的 Git 标签会自动触发发布工作流
-- GitHub Actions 手动发版时，输入的是不带 `v` 的版本号，例如 `2.0.15`
-- 工作流会自动创建对应标签 `v2.0.15`
-- `CHANGELOG.md` 中的版本标题也必须写成 `## [2.0.15] - 2026-04-15`
+- Pushing a Git tag such as `v2.0.16` will automatically trigger the release workflow
+- When manually triggering GitHub Actions, enter the version without the `v` prefix, for example `2.0.15`
+- The workflow will automatically create the corresponding `v2.0.15` tag
+- The version heading in `CHANGELOG.md` must also use the format `## [2.0.15] - 2026-04-15`
 
-## 发版产物
+## Release Artifacts
 
-推送版本标签或手动触发 `Create GitHub Release` 工作流后，会自动生成以下产物：
+After pushing a version tag or manually triggering `Create GitHub Release`, the following artifacts are generated automatically:
 
-- Git 标签：`vX.Y.Z`
-- GitHub Release：标题为 `vX.Y.Z`
-- Windows 桌面压缩包：`OutlookEmail-windows-x64-X.Y.Z.zip`
-- Docker 镜像：`ghcr.io/assast/outlookemail:vX.Y.Z`
+- Git tag: `vX.Y.Z`
+- GitHub Release: titled `vX.Y.Z`
+- Windows desktop archive: `OutlookEmail-windows-x64-X.Y.Z.zip`
+- Docker image: `ghcr.io/assast/outlookemail:vX.Y.Z`
 
-补充说明：
+Additional notes:
 
-- `latest` / `main` / `dev` 标签来自分支推送触发的 Docker 工作流
-- Release 工作流负责发布版本镜像 `vX.Y.Z`
-- GitHub Release 正文优先从 `CHANGELOG.md` 中提取对应版本条目
+- The `latest` / `main` / `dev` tags come from Docker workflows triggered by branch pushes
+- The Release workflow is responsible for publishing the `vX.Y.Z` image
+- GitHub Release notes are primarily extracted from the matching entry in `CHANGELOG.md`
 
-## 发版前检查
+## Pre-Release Checklist
 
-建议在发版前逐项确认：
+Before releasing, confirm the following items one by one:
 
-1. 目标提交已经合并到 `main`，且 `main` 处于可发布状态。
-2. `VERSION` 已更新为本次版本号。
-3. `CHANGELOG.md` 已新增本次版本条目，日期与内容完整。
-4. `README.md`、部署文档、升级文档中涉及的行为说明没有与当前实现冲突。
-5. 如本次改动影响 Docker、Windows `exe`、环境变量、API 或前端交互，已同步写入文档。
-6. 本地或 CI 已完成必要验证，至少确认核心功能没有明显回归。
+1. The target commit has already been merged into `main`, and `main` is in a releasable state.
+2. `VERSION` has been updated to the new version number.
+3. `CHANGELOG.md` contains the new release entry, including the date and complete notes.
+4. The behavior notes in `README.md`, deployment docs, and upgrade docs do not conflict with the current implementation.
+5. If this release changes Docker, Windows `exe`, environment variables, APIs, or frontend behavior, the documentation has been updated accordingly.
+6. Local or CI verification has been completed, and at least the core functionality has no obvious regressions.
 
-## 标准发版步骤
+## Standard Release Steps
 
-### 1. 在 `dev` 完成功能开发与验证
+### 1. Finish development and validation on `dev`
 
-建议先在 `dev` 分支完成功能、修复和文档整理，再合并到 `main`。
+It is recommended to finish features, fixes, and documentation cleanup on `dev` first, then merge into `main`.
 
-### 2. 合并到 `main`
+### 2. Merge into `main`
 
-确保 `main` 上的提交就是准备发布的最终代码。
+Make sure the commit on `main` is the final code intended for release.
 
-### 3. 更新版本号
+### 3. Update the version number
 
-同步更新以下内容：
+Synchronize the following files:
 
 - `VERSION`
 - `CHANGELOG.md`
 
-示例：
+Example:
 
 ```txt
 VERSION            -> 2.0.15
-CHANGELOG.md 标题  -> ## [2.0.15] - 2026-04-15
+CHANGELOG.md title  -> ## [2.0.15] - 2026-04-15
 ```
 
-### 4. 提交并推送 `main`
+### 4. Commit and push `main`
 
 ```bash
 git checkout main
@@ -83,103 +83,103 @@ git commit -m "docs: prepare release 2.0.15"
 git push origin main
 ```
 
-如果本次发版还包含代码变更，请把代码文件一并提交。
+If the release also includes code changes, include those files in the commit as well.
 
-### 5. 推送版本标签触发自动发布
+### 5. Push a version tag to trigger automatic release
 
 ```bash
 git tag -a v2.0.16 -m "Release v2.0.16"
 git push origin v2.0.16
 ```
 
-推送后，`Create GitHub Release` 工作流会自动运行并发布该版本。
+After that, the `Create GitHub Release` workflow will run automatically and publish the release.
 
-### 6. 手动触发 GitHub Release 工作流（兜底）
+### 6. Manually trigger the GitHub Release workflow as a fallback
 
-如果你不想通过推送 tag 触发，或者需要补发某个版本，也可以进入 GitHub Actions 手动运行：
+If you do not want to trigger the release by pushing a tag, or if you need to re-publish a specific version, you can also run it manually in GitHub Actions:
 
-- 工作流名称：`Create GitHub Release`
-- 输入参数：`version`
-- 输入示例：`2.0.15`
+- Workflow name: `Create GitHub Release`
+- Input parameter: `version`
+- Example value: `2.0.15`
 
-不要填写 `v2.0.15`，否则会生成错误标签。
+Do not enter `v2.0.15`, or the workflow will create an invalid tag.
 
-## 工作流实际执行内容
+## What the Workflow Actually Does
 
-`Create GitHub Release` 工作流会依次执行以下阶段：
+The `Create GitHub Release` workflow runs the following stages in order:
 
-### 1. 构建 Windows `exe`
+### 1. Build the Windows `exe`
 
-- 使用 `pyinstaller --noconfirm --clean outlookEmail.spec`
-- 打包 `dist/OutlookEmail.exe`
-- 与 `README.md` 一起压缩为发布附件
+- Uses `pyinstaller --noconfirm --clean outlookEmail.spec`
+- Packages `dist/OutlookEmail.exe`
+- Compresses it together with `README.md` as the release attachment
 
-### 2. 创建并推送标签
+### 2. Create and push the tag
 
-- 手动触发时会自动创建 `vX.Y.Z`
-- tag push 触发时会直接复用当前推送的 `vX.Y.Z`
-- 如果同名标签已经存在且指向当前提交，会跳过创建
-- 如果同名标签存在但指向别的提交，工作流会失败并停止发布
+- When manually triggered, it automatically creates `vX.Y.Z`
+- When triggered by a tag push, it reuses the pushed `vX.Y.Z`
+- If a tag with the same name already exists and points to the current commit, creation is skipped
+- If a tag with the same name exists but points to another commit, the workflow fails and stops the release
 
-### 3. 生成 Release Notes
+### 3. Generate Release Notes
 
-工作流会从 `CHANGELOG.md` 中提取当前版本对应的内容：
+The workflow extracts the current version content from `CHANGELOG.md`:
 
-- 匹配格式：`## [X.Y.Z]`
-- 如果没有匹配到，会退回到一个非常简短的默认说明
+- Matching format: `## [X.Y.Z]`
+- If no match is found, it falls back to a very short default note
 
-因此，正式发版前应确保 `CHANGELOG.md` 已提前写好该版本条目。
+Therefore, make sure the `CHANGELOG.md` entry is written before releasing.
 
-### 4. 构建并推送 Docker 版本镜像
+### 4. Build and push the Docker version image
 
-工作流会调用 `docker-build-push.yml`，并基于标签 `refs/tags/vX.Y.Z` 构建：
+The workflow calls `docker-build-push.yml` and builds based on the tag `refs/tags/vX.Y.Z`:
 
 - `ghcr.io/assast/outlookemail:vX.Y.Z`
 
-### 5. 发布 GitHub Release
+### 5. Publish the GitHub Release
 
-最终会创建正式 Release，并上传 Windows 压缩包附件。
+Finally, a formal Release is created and the Windows archive is uploaded as an attachment.
 
-## 发版后核对
+## Post-Release Checks
 
-建议至少检查以下项目：
+It is recommended to verify at least the following items:
 
-1. GitHub Release 页面已生成，标题和正文正确。
-2. Release 附件可下载，文件名包含本次版本号。
-3. 仓库标签页中存在 `vX.Y.Z`。
-4. GHCR 中可拉取版本镜像：
+1. The GitHub Release page exists, and both the title and body are correct.
+2. The release attachment can be downloaded, and the file name includes the current version.
+3. The repository tags page contains `vX.Y.Z`.
+4. The version image can be pulled from GHCR:
 
 ```bash
 docker pull ghcr.io/assast/outlookemail:v2.0.15
 ```
 
-5. 如本次版本包含部署或接口变更，抽样验证一台测试环境升级成功。
+5. If the release includes deployment or API changes, test the upgrade on at least one staging environment.
 
-## 常见问题
+## Common Issues
 
-### 为什么 GitHub Release 正文不完整？
+### Why is the GitHub Release body incomplete?
 
-通常是 `CHANGELOG.md` 中没有写对应版本标题，或标题格式不匹配。正确格式示例：
+Usually because `CHANGELOG.md` does not contain the matching version heading, or the heading format is incorrect. Correct example:
 
 ```md
 ## [2.0.15] - 2026-04-15
 ```
 
-### 为什么工作流提示标签已存在但 SHA 不一致？
+### Why does the workflow say the tag already exists but the SHA does not match?
 
-说明同名标签已经被打到其他提交上。此时不要继续强行发版，应该先确认：
+That means a tag with the same name already points to another commit. In that case, do not force the release. First confirm:
 
-- 本次是否用了重复版本号
-- `main` 是否已经发生额外提交
-- 历史标签是否曾被错误创建
+- Whether the version number was reused
+- Whether `main` has additional commits
+- Whether a historical tag was created incorrectly
 
-### 为什么没有刷新 `latest` 镜像？
+### Why was the `latest` image not refreshed?
 
-因为 Release 工作流只发布 `vX.Y.Z` 镜像。`latest` / `main` / `dev` 来自分支推送触发的 Docker 工作流，而不是 Release 工作流。
+Because the Release workflow only publishes the `vX.Y.Z` image. The `latest` / `main` / `dev` images come from branch-push Docker workflows, not from the Release workflow.
 
-## 建议的发版节奏
+## Recommended Release Rhythm
 
-1. 平时在 `dev` 累积开发与修复。
-2. 准备发布时合并到 `main`。
-3. 先补齐 `CHANGELOG.md` 和相关文档，再推送 `vX.Y.Z` 标签触发自动发版。
-4. 发版后用 `vX.Y.Z` 镜像做一次实际部署验证。
+1. Develop and fix issues on `dev` during normal work.
+2. Merge into `main` when ready to release.
+3. Fill in `CHANGELOG.md` and related docs first, then push the `vX.Y.Z` tag to trigger the automatic release.
+4. After release, perform a real deployment test with the `vX.Y.Z` image.

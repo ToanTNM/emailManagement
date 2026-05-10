@@ -1,65 +1,70 @@
-# 多邮箱邮件管理工具
+# Multi-Mailbox Email Management Tool
 
-一个面向多邮箱账号场景的邮件管理工具，支持通过 Outlook/Hotmail OAuth、Microsoft Graph API 和标准 IMAP 统一读取、管理和转发邮件，并提供 Web 界面用于分组管理、账号管理、邮件查看和对外 API 调用。当前支持 Outlook/Hotmail、Gmail、QQ、163、126、Yahoo、阿里邮箱以及自定义 IMAP 邮箱，同时集成 GPTMail、DuckMail、Cloudflare Temp Email 多提供商临时邮箱能力。
-## 📦 快速开始
-### 体验站点（可能非最新版本）
+A mail management tool for multi-mailbox scenarios. It supports Outlook/Hotmail OAuth, Microsoft Graph API, and standard IMAP for unified mail reading, management, and forwarding. It also provides a web UI for group management, account management, mail viewing, and external API access. Current support includes Outlook/Hotmail, Gmail, QQ, 163, 126, Yahoo, Aliyun Mail, and custom IMAP accounts, plus temporary mailbox support through GPTMail, DuckMail, and Cloudflare Temp Email.
+
+## 📦 Quick Start
+
+### Live Demo Site (may not be the latest version)
+
 https://aso.de5.net
+
 admin123
-注意：体验站点请勿修改密码或存放实际数据，部署在无持久化的服务上，数据随时可能丢失恢复初始状态
 
-## 🌿 版本管理与发布
+Note: Do not change the password or store real data on the demo site. It runs on a non-persistent service, so data may be lost and reset at any time.
 
-本项目采用轻量化双分支版本管理：
+## 🌿 Versioning and Releases
 
-- `main`：稳定分支，只保留可发布版本
-- `dev`：开发分支，日常功能开发与修复默认在这里进行
+This project uses a lightweight two-branch release model:
 
-标准发版流程：
+- `main`: stable branch; only releasable code stays here
+- `dev`: development branch; daily feature work and fixes happen here by default
 
-1. 在 `dev` 分支完成开发与验证
-2. 合并到 `main`
-3. 更新 `VERSION` 与 `CHANGELOG.md`
-4. 推送 `main`
-5. 手动触发 GitHub Actions 的 `Create GitHub Release` 工作流，并传入不带 `v` 的版本号，例如 `2.0.15`
+Standard release flow:
 
-手动发版工作流会自动：
+1. Finish development and validation on `dev`
+2. Merge into `main`
+3. Update `VERSION` and `CHANGELOG.md`
+4. Push `main`
+5. Manually trigger the GitHub Actions `Create GitHub Release` workflow and pass the version number without `v`, for example `2.0.15`
 
-- 构建 Windows `exe` 并打包为 Release 附件
-- 创建并推送对应标签，例如 `v2.0.15`
-- 根据 `CHANGELOG.md` 中对应版本条目生成 GitHub Release 正文
-- 构建并发布正式版本镜像 `ghcr.io/assast/outlookemail:v2.0.15`
+The manual release workflow automatically:
 
-Docker 镜像标签约定：
+- Builds the Windows `exe` and packages it as a Release asset
+- Creates and pushes the matching tag, such as `v2.0.15`
+- Generates the GitHub Release body from the matching entry in `CHANGELOG.md`
+- Builds and publishes the release image `ghcr.io/assast/outlookemail:v2.0.15`
 
-- `ghcr.io/assast/outlookemail:latest`：默认分支最近一次符合条件的稳定构建
-- `ghcr.io/assast/outlookemail:main`：`main` 分支最近一次符合条件的构建
-- `ghcr.io/assast/outlookemail:dev`：`dev` 分支最近一次符合条件的构建
-- `ghcr.io/assast/outlookemail:vX.Y.Z`：正式版本镜像
+Docker image tag conventions:
 
-更完整的发版步骤、工作流行为和核对清单见 [发版说明](RELEASE.md)。
+- `ghcr.io/assast/outlookemail:latest`: most recent eligible stable build from the default branch
+- `ghcr.io/assast/outlookemail:main`: most recent eligible build from `main`
+- `ghcr.io/assast/outlookemail:dev`: most recent eligible build from `dev`
+- `ghcr.io/assast/outlookemail:vX.Y.Z`: official release image
 
-### 方式一：下载 Windows `exe`(win可用)
+See the full release steps, workflow behavior, and checklist in [Release Guide](RELEASE.md).
 
-从 GitHub Releases 下载对应版本的 `OutlookEmail-windows-x64-*.zip`，解压后直接运行 `OutlookEmail.exe` 即可。
+### Option 1: Download the Windows `exe` (Windows only)
 
-桌面版首次启动会自动：
+Download the matching `OutlookEmail-windows-x64-*.zip` from GitHub Releases, extract it, and run `OutlookEmail.exe` directly.
 
-- 生成并持久化 `SECRET_KEY`
-- 创建本地数据目录和 SQLite 数据库
-- 启动 Web 服务，默认地址 `http://127.0.0.1:5000`
+On first launch, the desktop app automatically:
 
-说明：
+- Generates and persists `SECRET_KEY`
+- Creates the local data directory and SQLite database
+- Starts the web service at `http://127.0.0.1:5000`
 
-- Windows 数据默认保存在 `%APPDATA%\OutlookEmail`
-- 默认登录密码仍然是 `admin123`，首次登录后建议立即修改
+Notes:
 
-### 方式二：使用 Docker（推荐服务器部署）
+- On Windows, data is stored in `%APPDATA%\OutlookEmail`
+- The default login password is still `admin123`; change it immediately after first login
+
+### Option 2: Use Docker (recommended for servers)
 
 ```bash
-# 拉取最新镜像
+# Pull the latest image
 docker pull ghcr.io/assast/outlookemail:latest
 
-# 运行容器
+# Run the container
 docker run -d \
   --name outlook-mail-reader \
   -p 5000:5000 \
@@ -69,7 +74,7 @@ docker run -d \
   ghcr.io/assast/outlookemail:latest
 ```
 
-### 方式三：使用 Python 直接运行
+### Option 3: Run directly with Python
 
 ```bash
 git clone https://github.com/assast/outlookEmail.git
@@ -79,14 +84,14 @@ export SECRET_KEY=your-secret-key-here
 python web_outlook_app.py
 ```
 
-访问 `http://localhost:5000` 即可使用。
-如果是服务器部署，仍然建议显式设置固定 `SECRET_KEY`。
+Open `http://localhost:5000` to use the app.
+For server deployments, set a fixed `SECRET_KEY` explicitly.
 
-### 运行模式
+### Runtime Mode
 
-服务需要保持单 worker 运行。官方 Docker 镜像已固定为 Gunicorn 单 worker + 多线程；如果自定义部署，请不要增加 worker 数，需要并发时优先调整线程数。Token 刷新管理的流式任务会使用进程内短期状态，多个 worker 会导致任务初始化和 SSE 订阅落到不同进程。
+The service must run with a single worker. The official Docker image uses Gunicorn with one worker and multiple threads; if you customize the deployment, do not increase the worker count. The stream-based token refresh tasks use short-lived in-process state, so multiple workers can cause task initialization and SSE subscription to land in different processes.
 
-### 使用 Docker Compose
+### Using Docker Compose
 
 ```yaml
 version: '3.8'
@@ -109,14 +114,17 @@ services:
 docker-compose up -d
 ```
 
-#### 可选：启用界面 Docker 在线更新
+#### Optional: Enable in-app Docker online updates
 
-界面里的 Docker 在线更新需要访问宿主机 Docker socket。`/var/run/docker.sock` 具有宿主机 Docker 管理权限，只建议在可信环境开启。
+Docker online updates in the UI require access to the host Docker socket. `/var/run/docker.sock` grants host-level Docker control, so only enable it in trusted environments.
 
-该功能只适用于使用可变镜像标签的容器，例如 `latest`、`main`、`dev`。如果当前容器固定使用 `v2.0.39` 这类版本标签，界面会拒绝在线更新，因为 Watchtower 不会自动把固定标签切换到新版本标签。
-应用默认会在 daemon 明确返回“最低支持 API 版本”时自动按该版本重试；如果你的 Docker 环境或 socket 代理有特殊兼容要求，也可以显式设置 `DOCKER_UPDATE_API_VERSION`，其值可参考 `docker version --format '{{.Server.APIVersion}}'` 的输出。
-可选环境变量 `DOCKER_UPDATE_STATUS_TIMEOUT` 用于单独控制状态查询和容器 inspect 的超时时间（秒），不影响实际更新任务的 `DOCKER_UPDATE_TIMEOUT`。
-如果当前 `latest` / `main` / `dev` 标签没有新的镜像可拉取，界面会显示本次没有应用更新，而不是误报为更新失败。
+This feature is only for mutable image tags such as `latest`, `main`, and `dev`. If the current container uses a fixed tag like `v2.0.39`, the UI will refuse to update online because Watchtower cannot automatically switch a fixed tag to a newer release tag.
+
+The app automatically retries with the minimum API version reported by the daemon. If your Docker environment or socket proxy has special compatibility requirements, you can set `DOCKER_UPDATE_API_VERSION` explicitly; the value can be taken from `docker version --format '{{.Server.APIVersion}}'`.
+
+The optional `DOCKER_UPDATE_STATUS_TIMEOUT` controls only status queries and container inspect timeouts in seconds. It does not affect the actual update task timeout `DOCKER_UPDATE_TIMEOUT`.
+
+If there is no newer image available for the current `latest` / `main` / `dev` tag, the UI will show that no update was applied instead of reporting a failure.
 
 ```yaml
 version: '3.8'
@@ -135,278 +143,283 @@ services:
       - FLASK_ENV=production
       - DOCKER_UPDATE_ENABLED=true
       - DOCKER_UPDATE_CONTAINER=outlook-mail-reader
-      # 可选：在较新的 Docker daemon / socket 代理环境中显式指定 API 版本
+      # Optional: explicitly specify the API version in newer Docker daemon / socket proxy environments
       # - DOCKER_UPDATE_API_VERSION=1.52
     restart: unless-stopped
 ```
 
-## ✨ 功能特性
+## ✨ Features
 
-### 邮件读取方式
+### Mail Reading Modes
 
-本工具当前包含三类读取链路：
+This tool currently has three read paths:
 
-1. **Outlook/Hotmail OAuth + Graph API** - 优先方式，适合 Outlook / Hotmail / Live 账号
-2. **Outlook/Hotmail OAuth + IMAP 回退** - `outlook.live.com` / `outlook.office365.com`
-3. **标准 IMAP** - 适用于 Gmail、QQ、163、126、Yahoo、阿里邮箱和自定义 IMAP
+1. **Outlook/Hotmail OAuth + Graph API** - preferred for Outlook / Hotmail / Live accounts
+2. **Outlook/Hotmail OAuth + IMAP fallback** - `outlook.live.com` / `outlook.office365.com`
+3. **Standard IMAP** - for Gmail, QQ, 163, 126, Yahoo, Aliyun Mail, and custom IMAP
 
-### Web 应用功能
+### Web App Features
 
-#### 核心功能
-- 🔐 **登录验证** - 密码保护的 Web 界面，支持在线修改密码
-- 📁 **分组管理** - 支持创建、编辑、删除邮箱分组，自定义分组颜色，支持分组级别代理设置
-- 🌐 **分组代理** - 每个分组可配置 HTTP/SOCKS5 代理
-- 📧 **多邮箱管理** - 批量导入和管理 Outlook/Hotmail OAuth / IMAP 邮箱账号
-- 🪪 **别名管理** - 支持给单个邮箱配置多个别名邮箱，主邮箱和别名都可用于检索邮件和调用对外 API
-- 🔀 **别名高级用法** - 可将外部邮箱自动转发到本项目管理的邮箱 A，再把外部邮箱配置为 A 的别名，从而通过本项目统一读取邮件
-- 📬 **邮件查看** - Web 界面支持查看收件箱和垃圾邮件；API 支持 `inbox`、`junkemail`、`deleteditems`、`all`
-- 📎 **附件下载** - 邮件详情支持单个附件下载，也支持将全部附件打包为 ZIP 下载
-- 🔍 **全屏查看** - 支持全屏模式查看邮件
-- 📤 **导出功能** - 支持按分组或全部导出邮箱账号信息
-- 🧩 **WebDAV 备份** - 支持将“导出全部分组”的文件按 Cron 定时上传到 WebDAV，也可手动上传
-- 🎨 **现代化 UI** - 四栏布局，账号列表、邮件列表、邮件详情分区清晰
-- ⚡ **性能优化** - 邮件列表与账号列表缓存，分组切换和账号切换更快
-- 📄 **分页加载** - 滚动到底部自动加载下一页（每页20封）
-- 🔥 **临时邮箱** - 集成 GPTMail + DuckMail + Cloudflare Temp Email，多提供商生成、导入、读取和查看详情
-- ⚙️ **系统设置** - 在线修改密码、API Key 等
-- 🔄 **OAuth2 助手** - 内置授权流程，快速获取 Refresh Token
-- 💾 **邮件缓存** - 智能缓存邮件列表，切换即时展示
-- 🏷️ **标签管理** - 支持给邮箱打标签、批量操作、按标签筛选
-- 📦 **批量移动分组** - 批量选择邮箱移动到指定分组
-- ✅ **批量选择** - 邮箱列表、邮件列表均支持全选当前列表与清空选择
-- 🗑️ **邮件删除** - 单封/批量永久删除邮件
-- 🔄 **API 优先级回退** - Graph API → IMAP(新) → IMAP(旧) 自动回退
-- 🔑 **对外 API** - 通过 API Key 直接获取邮件，无需登录，支持别名邮箱、聚合文件夹和多条件筛选 带+号的附加电子邮箱自动识别，自动回退主邮箱/别名邮箱查询；如果要求的功能比较完善，建议直接对接完整API，文档已经改成了适合AI读取的形状，直接喂给AI让AI按照完整API使用登录密码而不是API Key对接即可
+#### Core
+- 🔐 **Login protection** - password-protected web UI with online password changes
+- 📁 **Group management** - create, edit, and delete mailbox groups; custom group colors; group-level proxy settings
+- 🌐 **Group proxies** - HTTP/SOCKS5 proxy per group
+- 📧 **Multi-mailbox management** - bulk import and manage Outlook/Hotmail OAuth / IMAP accounts
+- 🪪 **Alias management** - assign multiple alias addresses to one mailbox; both primary and alias emails can be used for search and external API calls
+- 🔀 **Advanced alias usage** - forward an external mailbox to mailbox A managed by this project, then configure the external mailbox as an alias of A to read all mail through this tool
+- 📬 **Mail viewing** - inbox and junk mail in the web UI; API supports `inbox`, `junkemail`, `deleteditems`, and `all`
+- 📎 **Attachment downloads** - download one attachment or all attachments as a ZIP
+- 🔍 **Fullscreen view** - view mail in fullscreen mode
+- 📤 **Export** - export mailbox accounts by group or all at once
+- 🧩 **WebDAV backup** - upload the "export all groups" file to WebDAV on Cron or manually
+- 🎨 **Modern UI** - four-column layout with clear account, mail list, and detail panes
+- ⚡ **Performance tuning** - cached account and mail lists for faster switching
+- 📄 **Infinite scroll** - load the next page automatically at the bottom (20 mails per page)
+- 🔥 **Temporary mailboxes** - GPTMail + DuckMail + Cloudflare Temp Email integration for generation, import, reading, and detail viewing
+- ⚙️ **System settings** - change password, API Key, and more online
+- 🔄 **OAuth2 helper** - built-in auth flow to quickly get a Refresh Token
+- 💾 **Mail cache** - smart list caching for instant switching
+- 🏷️ **Tag management** - tag accounts, bulk operations, and filter by tag
+- 📦 **Bulk group move** - move selected mailboxes to a target group
+- ✅ **Bulk selection** - select all visible rows or clear selection in account and mail lists
+- 🗑️ **Mail deletion** - delete one or many messages permanently
+- 🔄 **API priority fallback** - Graph API -> IMAP (new) -> IMAP (legacy)
+- 🔑 **External API** - fetch mail directly by API Key without logging in; supports aliases, aggregated folders, and multi-condition filters
 
-#### 邮件转发
-- 📮 **按账号开启转发** - 每个账号单独控制是否参与自动转发
-- 📨 **多渠道转发** - 支持 SMTP 邮件转发和 Telegram 转发
-- ⏱️ **时间窗口控制** - 支持仅转发最近 X 分钟内收到的邮件
-- 🗑️ **垃圾箱转发可选** - 可配置是否把垃圾邮件一起纳入转发
-- 📚 **转发历史** - 支持查看最近转发记录和失败记录
-- ▶️ **手动触发** - 支持从界面手动触发一次转发检查
+#### Mail Forwarding
+- 📮 **Per-account forwarding** - forwarding can be enabled or disabled per account
+- 📨 **Multiple channels** - SMTP forwarding and Telegram forwarding are supported
+- ⏱️ **Time window control** - only forward mail received within the last X minutes
+- 🗑️ **Optional junk mail forwarding** - decide whether junk mail is forwarded too
+- 📚 **Forwarding history** - view recent forwarding records and failures
+- ▶️ **Manual trigger** - trigger one forwarding check from the UI
 
-#### Token 刷新管理
-- 🔁 **全量刷新** - 一键刷新所有 Outlook/Hotmail OAuth 账号 Token
-- ⏰ **定时刷新** - 支持按天数或 Cron 表达式配置，Docker / Docker Compose 启动也会自动生效
-- 📊 **刷新统计** - 实时显示失败邮箱数量
-- 📜 **刷新历史** - 近半年完整记录
+#### Token Refresh Management
+- 🔁 **Full refresh** - refresh all Outlook/Hotmail OAuth account tokens at once
+- ⏰ **Scheduled refresh** - run by day interval or Cron expression; works in Docker / Docker Compose too
+- 📊 **Refresh statistics** - live count of failed mailboxes
+- 📜 **Refresh history** - complete history for the last six months
 
-#### WebDAV 备份
-- 🗂️ **全部分组备份** - 备份文件复用“导出全部分组”的格式，包含普通邮箱和临时邮箱分组数据
-- ⏲️ **Cron 定时上传** - 支持 5 段 Cron 表达式，并使用常规设置里的应用时区计算下次执行时间
-- 🧪 **连接测试** - 可在设置页上传并清理测试文件，用于验证 WebDAV 目录是否可写
-- 🔐 **敏感操作确认** - 修改备份设置和手动上传真实备份时需要再次验证登录密码
+#### WebDAV Backup
+- 🗂️ **Full-group backups** - backup files reuse the "export all groups" format, including regular and temporary mailbox data
+- ⏲️ **Cron uploads** - supports 5-field Cron expressions and uses the application time zone for next-run calculation
+- 🧪 **Connection test** - upload and clean up a test file to verify the WebDAV directory is writable
+- 🔐 **Sensitive-action confirmation** - changing backup settings or uploading a real backup requires password re-authentication
 
-#### 安全特性
-- 🛡️ XSS 防护 | 🔒 CSRF 防护 | 🔐 数据加密 | 🚦 速率限制 | 📋 审计日志 | 🔑 二次验证
+#### Security Features
+- 🛡️ XSS protection | 🔒 CSRF protection | 🔐 data encryption | 🚦 rate limiting | 📋 audit logs | 🔑 secondary verification
 
-### 界面布局
+### Layout
 
-Web 应用采用四栏式布局设计：
-1. **分组面板** - 显示所有邮箱分组，点击切换
-2. **邮箱面板** - 显示当前分组下的邮箱账号列表
-3. **邮件列表** - 显示选中邮箱的邮件，支持切换文件夹和滚动加载
-4. **邮件详情** - 显示选中邮件的完整内容（支持 HTML 渲染）
+The web app uses a four-column layout:
 
-## 📸 界面预览
+1. **Group panel** - shows all mailbox groups and switches on click
+2. **Mailbox panel** - shows the mailbox list for the selected group
+3. **Mail list** - shows emails for the selected mailbox, with folder switching and scroll loading
+4. **Mail details** - shows full content for the selected mail, including HTML rendering
 
-### 邮箱列表界面
-![邮箱列表](img/邮箱列表.png)
+## 📸 Screenshots
 
-### 全局搜索功能
-![全局搜索](img/全局搜索.png)
+### Mailbox List
+![Mailbox list](img/邮箱列表.png)
 
-### 导入邮箱账号
-![导入邮箱账号](img/导入邮箱账号.png)
+### Global Search
+![Global search](img/全局搜索.png)
 
-### Token 刷新管理
-![全量刷新Token](img/全量刷新token.png)
+### Import Mailboxes
+![Import mailboxes](img/导入邮箱账号.png)
 
-### 标签管理功能
-![标签管理](img/标签管理.png)
+### Token Refresh Management
+![Full token refresh](img/全量刷新token.png)
 
-## 📖 使用说明
+### Tag Management
+![Tag management](img/标签管理.png)
 
-### 1. 获取 OAuth2 凭证（这一步非必须，买的账号如果是带令牌的可以跳过这一步; 项目本身也内置了默认的客户端id，如果忽略这一步则使用的是默认客户端id，就可以直接从本节的步骤5开始）
+## 📖 Usage
 
-要使用本工具，您需要获取以下 OAuth2 凭证：
+### 1. Get OAuth2 Credentials (optional)
 
-1. **Client ID** - Microsoft Azure 应用注册的客户端 ID
-2. **Refresh Token** - OAuth2 刷新令牌
+If you buy accounts that already include a token, you can skip this step. The project also ships with a default client ID. If you skip this step, the default client ID will be used and you can start from step 5.
 
-#### 步骤 1：注册 Azure 应用（这一步看目前的情况得E3 或者 E5 或者其他的开发者账号才能创建）
+To use this tool, you need the following OAuth2 credentials:
 
-访问 [Azure Portal](https://portal.azure.com/)，进入「应用注册」：
+1. **Client ID** - the Microsoft Azure application registration client ID
+2. **Refresh Token** - the OAuth2 refresh token
 
-![应用注册](img/应用注册.png)
+#### Step 1: Register an Azure app
 
-#### 步骤 2：创建新应用
+Visit [Azure Portal](https://portal.azure.com/) and open "App registrations".
 
-点击「新注册」，填写应用信息：
+![App registrations](img/应用注册.png)
 
-![注册应用程序](img/注册应用程序.png)
+#### Step 2: Create a new app
 
-- **名称**：自定义应用名称
-- **支持的账户类型**：选择「任何组织目录中的账户和个人 Microsoft 账户」
-- **重定向 URI**：选择「公共客户端/本机」，填写 `http://localhost:8080`
+Click "New registration" and fill in the application details.
 
-#### 步骤 3：获取应用程序 ID
+![Register app](img/注册应用程序.png)
 
-创建完成后，复制「应用程序(客户端) ID」：
+- **Name**: custom app name
+- **Supported account types**: choose "Accounts in any organizational directory and personal Microsoft accounts"
+- **Redirect URI**: choose "Public client/native" and enter `http://localhost:8080`
 
-![获取应用程序ID](img/获取应用程序ID.png)
+#### Step 3: Get the application ID
 
-#### 步骤 4：配置 API 权限  这一步应该可以省略，目前内置的客户端id就没有设置这一步也能正常使用
+After creation, copy the "Application (client) ID".
 
-在「API 权限」中添加以下权限：
-- `offline_access` - 获取刷新令牌
-- `Mail.Read` - 读取邮件
-- `Mail.ReadWrite` - 读写邮件
-- `User.Read` - 读取用户信息
-- `IMAP.AccessAsUser.All` - IMAP 访问
+![Get application ID](img/获取应用程序ID.png)
 
-#### 步骤 5：获取 Refresh Token
+#### Step 4: Configure API permissions
 
-使用本工具内置的 OAuth2 助手获取 Refresh Token：
+This step can usually be skipped. The built-in client ID works without it.
 
-![换取token](img/换取token.png)
+Add the following permissions under "API permissions":
+- `offline_access` - get a refresh token
+- `Mail.Read` - read mail
+- `Mail.ReadWrite` - read and write mail
+- `User.Read` - read user info
+- `IMAP.AccessAsUser.All` - IMAP access
 
-1. 在 Web 界面点击「获取 Token」按钮
-2. 点击「生成授权链接」
-3. 复制链接到浏览器打开，完成授权
-4. 复制授权后的完整 URL（处于安全考虑，我没有统一建设授权回调服务，所有授权都在自己部署的服务内完成，不会外泄，所以重定向URI为http://localhost:8080，这个链接肯定是打不开的，所以要复制过来在部署的服务走后半段的换取Refresh Token）
-5. 粘贴到「授权后的 URL」输入框
-6. 点击「换取 Token」按钮
-7. 复制获得的 Refresh Token
+#### Step 5: Get a Refresh Token
 
-### 2. 导入邮箱账号
+Use the built-in OAuth2 helper to obtain a Refresh Token:
 
-在 Web 界面中点击「导入邮箱」后，可根据邮箱类型选择对应导入格式。
+![Exchange token](img/换取token.png)
+
+1. Click "Get Token" in the web UI
+2. Click "Generate authorization link"
+3. Open the link in your browser and complete authorization
+4. Copy the full URL after authorization. For security reasons, I did not build a unified authorization callback service. All authorization is completed inside your own deployed service, so nothing is leaked. The redirect URI is `http://localhost:8080`, which cannot actually be opened, so copy the callback URL back into the deployed service and continue the Refresh Token exchange there
+5. Paste it into the "Authorized URL" field
+6. Click "Exchange Token"
+7. Copy the returned Refresh Token
+
+### 2. Import Mailboxes
+
+After clicking "Import Mailboxes" in the web UI, choose the import format for the mailbox type.
 
 #### Outlook/Hotmail OAuth
 
-支持两种格式：
+Two formats are supported:
 
 ```txt
-邮箱----密码----client_id----refresh_token
-邮箱----密码----refresh_token----client_id
+email----password----client_id----refresh_token
+email----password----refresh_token----client_id
 ```
 
-示例：
+Example:
 
 ```txt
 user@outlook.com----password123----24d9a0ed-8787-4584-883c-2fd79308940a----0.AXEA...
 ```
 
-#### 标准 IMAP 邮箱
+#### Standard IMAP Mailboxes
 
-适用于 Gmail、QQ、163、126、Yahoo、阿里邮箱等：
+For Gmail, QQ, 163, 126, Yahoo, Aliyun Mail, and others:
 
 ```txt
-邮箱----IMAP授权码/应用密码
+email----IMAP app password / authorization code
 ```
 
-示例：
+Example:
 
 ```txt
 user@gmail.com----app-password
 user@qq.com----imap-auth-code
 ```
 
-#### 自定义 IMAP
+#### Custom IMAP
 
-支持两种格式：
+Two formats are supported:
 
 ```txt
-邮箱----IMAP密码
-邮箱----IMAP密码----imap_host----imap_port
+email----IMAP password
+email----IMAP password----imap_host----imap_port
 ```
 
-示例：
+Example:
 
 ```txt
 user@example.com----app-password
 user@example.com----app-password----imap.example.com----993
 ```
 
-支持批量导入，每行一个账号。导入时可选择是否立即开启邮件转发。普通邮箱导入时不能选择临时邮箱分组。
+Bulk import is supported, one account per line. During import, you can choose whether forwarding should be enabled immediately. Regular mailbox import cannot select the temporary mailbox group.
 
-### 3. 查看邮件
+### 3. Read Mail
 
-1. 从左侧选择分组
-2. 选择邮箱账号
-3. 点击「获取邮件」按钮
-4. 在 Web 界面切换「收件箱」「垃圾邮件」查看邮件
-5. 滚动到邮件列表底部自动加载下一页（每页 20 封）
-6. 点击邮件查看详情，支持 HTML 渲染与全屏查看
-7. 需要查看 `deleteditems` 或 `all` 聚合结果时，建议使用对外 API 或内部 API
+1. Select a group from the left panel
+2. Select a mailbox account
+3. Click the "Fetch Mail" button
+4. Switch between "Inbox" and "Junk Mail" in the web UI
+5. Scroll to the bottom of the list to automatically load the next page (20 mails per page)
+6. Click a mail to see its details, with HTML rendering and fullscreen support
+7. If you need `deleteditems` or `all` aggregated results, use the external API or internal API
 
-### 4. 别名管理
+### 4. Alias Management
 
-1. 打开某个邮箱账号的「编辑账号」
-2. 在「别名邮箱」中按行填写多个别名
-3. 保存后，主邮箱和别名都会指向同一个账号
+1. Open "Edit Account" for a mailbox
+2. Enter multiple aliases, one per line, in "Alias Email"
+3. Save, and both the primary email and aliases will point to the same account
 
-适合这些场景：
+Useful for:
 
-- 同一账号有多个注册邮箱名称
-- 某些站点使用了 `user+tag@example.com`
-- 外部邮箱自动转发到本项目管理邮箱后，希望继续用原邮箱名来取信
+- One account with multiple registration email names
+- Sites using addresses such as `user+tag@example.com`
+- External mail forwarded into a managed mailbox, while still wanting to read it through the original address
 
-### 5. 邮件转发
+### 5. Mail Forwarding
 
-邮件转发分成两层控制：
+Mail forwarding is controlled at two levels:
 
-1. **账号级开关**
-   在导入账号或编辑账号时，选择是否为该账号开启转发
-2. **全局转发设置**
-   在「设置 -> 邮件转发设置」中配置：
-   - 轮询间隔
-   - 转发邮件时间范围
-   - 是否转发垃圾箱邮件
-   - 转发渠道（SMTP / Telegram）
-   - SMTP / Telegram 的具体参数
+1. **Per-account switch**
+   When importing or editing an account, choose whether that account participates in forwarding
+2. **Global forwarding settings**
+   Configure the following in "Settings -> Mail Forwarding Settings":
+   - Poll interval
+   - Mail time window
+   - Whether junk mail is forwarded
+   - Forwarding channels (SMTP / Telegram)
+   - Detailed SMTP / Telegram parameters
 
-补充说明：
+Additional notes:
 
-- 转发轮询只处理“账号里已开启转发”的邮箱
-- 可以手动触发一次转发检查
-- 可以查看最近转发历史和失败记录
+- Forwarding polls only process accounts that have forwarding enabled
+- You can manually trigger one forwarding check
+- You can view recent forwarding history and failures
 
-### 6. WebDAV 备份
+### 6. WebDAV Backup
 
-在「设置 -> WebDAV 备份」中配置：
+Configure this in "Settings -> WebDAV Backup":
 
-1. 填写 WebDAV 目录 URL，例如 `https://dav.example.com/backups`
-2. 按需填写 WebDAV 用户名和密码 / App Password
-3. 填写 5 段 Cron 表达式，例如 `0 3 * * *`
-4. 点击「计算下次执行时间」确认 Cron 预览，时间会使用常规设置里的应用时区
-5. 点击「测试 WebDAV」验证目录可写；测试只上传临时测试文件，不需要登录密码
-6. 修改备份设置时，在“敏感操作确认”中输入登录密码后保存
+1. Enter the WebDAV directory URL, for example `https://dav.example.com/backups`
+2. Fill in the WebDAV username and password / App Password as needed
+3. Enter a 5-field Cron expression, for example `0 3 * * *`
+4. Click "Calculate next run" to confirm the Cron preview; the time uses the application time zone from the general settings
+5. Click "Test WebDAV" to verify the directory is writable; the test uploads only a temporary file and does not require the login password
+6. When changing backup settings, enter the login password in the "Sensitive action confirmation" prompt before saving
 
-补充说明：
+Additional notes:
 
-- 定时备份会上传与“导出全部分组”一致的文本文件，文件名形如 `all_groups_backup_YYYYMMDD_HHMMSS.txt`
-- 「手动上传」会立即上传真实备份文件，需要输入登录密码
-- WebDAV 备份涉及账号、令牌、临时邮箱凭据等敏感数据，建议使用专用 WebDAV 目录并控制访问权限
+- Scheduled backups upload the same text file format as "Export all groups", with file names like `all_groups_backup_YYYYMMDD_HHMMSS.txt`
+- "Manual upload" uploads the real backup file immediately and requires the login password
+- WebDAV backups include sensitive data such as accounts, tokens, and temporary mailbox credentials, so use a dedicated WebDAV directory and restrict access carefully
 
-### 7. 对外 API
+### 7. External API
 
-通过 API Key 直接获取邮件，无需登录 Web 界面。
+Fetch mail directly with an API Key, no web login required.
 
-当前额外支持：
+Also supported:
 
-- 使用主邮箱或别名邮箱取信
-- `folder=all` 一次聚合收件箱和垃圾邮件并按标准化后的邮件时间倒序排序，`top` 按每个文件夹分别计算
-- 支持按主题、发件人、关键词筛选列表
-- 支持特殊字符别名，例如 `user+alias@example.com`
-- 默认 `top=1`
+- Use the primary email or an alias to fetch mail
+- `folder=all` fetches inbox and junk mail together, sorted by normalized mail time in descending order, and `top` is calculated per folder
+- Filter lists by subject, sender, or keyword
+- Support special-character aliases such as `user+alias@example.com`
+- Default `top=1`
 
-**配置步骤：**
-1. 点击「⚙️ 设置」→ 在「对外 API Key」处点击「🔑 随机生成」→ 保存
+**Setup:**
+1. Click "Settings" -> "External API Key" -> "Generate random" -> Save
 
-**调用示例：**
+**Examples:**
 ```bash
 curl -H "X-API-Key: your-api-key" \
   "http://localhost:5000/api/external/emails?email=user@outlook.com&folder=inbox"
@@ -421,94 +434,96 @@ curl -H "X-API-Key: your-api-key" \
   "http://localhost:5000/api/external/emails?email=user%2Balias%40example.com"
 ```
 
-如果邮箱或别名里带特殊字符：
+If the mailbox or alias contains special characters:
 
-- `@` 可以直接传
-- `+` 建议编码成 `%2B`
-- `&` 必须编码成 `%26`
+- `@` can be passed directly
+- `+` should be encoded as `%2B`
+- `&` must be encoded as `%26`
 
-如果你把外部邮箱 B 自动转发到本项目管理的邮箱 A，再把 B 配成 A 的别名，那么后续可以直接用 B 作为 `email` 参数调用对外 API。
+If you automatically forward external mailbox B into managed mailbox A, and then configure B as an alias of A, you can later call the external API directly with B as the `email` parameter.
 
-详细文档见 [API 文档](docs/api.md)。
+See [API Documentation](docs/api.md) for the full details.
 
-## 📚 详细文档
+## 📚 Detailed Docs
 
-| 文档 | 说明 |
+| Doc | Description |
 |------|------|
-| [🚀 部署指南](docs/deployment.md) | Docker、Docker Compose、Nginx/Caddy 部署、环境变量配置 |
-| [⬆️ 升级指南](docs/upgrade.md) | Windows、Docker、Python 直跑升级与回滚建议 |
-| [🔐 安全配置](docs/security.md) | XSS/CSRF 防护、数据加密、速率限制、审计日志 |
-| [📡 API 文档](docs/api.md) | 对外简易API、完整API、代理配置 |
-| [🛠️ 故障排查](docs/troubleshooting.md) | 常见问题、故障排查步骤 |
-| [📋 更新日志](CHANGELOG.md) | 版本更新历史 |
-| [🚢 发版说明](RELEASE.md) | 标准发版步骤、版本号规则、GitHub Release 说明 |
-| [🛡️ 分支保护建议](BRANCH_PROTECTION.md) | main/dev 使用边界、保护规则与构建触发建议 |
+| [🚀 Deployment Guide](docs/deployment.md) | Docker, Docker Compose, Nginx/Caddy deployment, environment variables |
+| [⬆️ Upgrade Guide](docs/upgrade.md) | Upgrade and rollback guidance for Windows, Docker, and direct Python runs |
+| [🔐 Security Configuration](docs/security.md) | XSS/CSRF protection, encryption, rate limiting, audit logs |
+| [📡 API Documentation](docs/api.md) | External API, full API, proxy configuration |
+| [🛠️ Troubleshooting](docs/troubleshooting.md) | Common problems and troubleshooting steps |
+| [📋 Changelog](CHANGELOG.md) | Version history |
+| [🚢 Release Guide](RELEASE.md) | Standard release flow, version rules, GitHub Release notes |
+| [🛡️ Branch Protection Recommendations](BRANCH_PROTECTION.md) | `main` / `dev` boundaries, protection rules, build trigger guidance |
 
-## 🏗️ 技术架构
+## 🏗️ Architecture
 
-### 后端技术栈
-- **Flask 3.0+** - Web 框架
-- **SQLite 3** - 数据库
-- **Requests / requests[socks]** - HTTP 客户端与代理支持
-- **IMAP4_SSL** - IMAP 协议支持
-- **Microsoft Graph API** - Outlook/Hotmail 邮件 API
-- **APScheduler + croniter** - 定时刷新与转发轮询
-- **bcrypt + cryptography** - 密码哈希与敏感字段加密
+### Backend Stack
+- **Flask 3.0+** - Web framework
+- **SQLite 3** - Database
+- **Requests / requests[socks]** - HTTP client and proxy support
+- **IMAP4_SSL** - IMAP protocol support
+- **Microsoft Graph API** - Outlook/Hotmail mail API
+- **APScheduler + croniter** - Scheduled refresh and forwarding polls
+- **bcrypt + cryptography** - Password hashing and sensitive field encryption
 
-### 前端技术栈
-- **原生 JavaScript** - 无框架依赖
-- **CSS3** - 现代化样式
-- **Fetch API** - 异步请求
-- **DOMPurify 3.0.8** - HTML 净化
+### Frontend Stack
+- **Vanilla JavaScript** - No framework dependency
+- **CSS3** - Modern styling
+- **Fetch API** - Async requests
+- **DOMPurify 3.0.8** - HTML sanitization
 
-### 系统要求
+### System Requirements
 - Python 3.9+
 - SQLite 3
-- Docker（可选）
-- 2GB+ 内存
+- Docker (optional)
+- 2GB+ RAM
 
-## 📝 依赖说明
+## 📝 Dependencies
 
 ```txt
 flask>=3.0.0
-flask-wtf>=1.2.0          # CSRF 防护（推荐安装）
+flask-wtf>=1.2.0          # CSRF protection (recommended)
 werkzeug>=3.0.0
-requests[socks]>=2.25.0   # HTTP 请求与代理支持
-APScheduler>=3.10.0       # 定时任务
-croniter>=1.3.0           # Cron 表达式解析
-bcrypt>=4.0.0             # 密码哈希
-cryptography>=41.0.0      # 数据加密
+requests[socks]>=2.25.0   # HTTP requests and proxy support
+APScheduler>=3.10.0       # Scheduled jobs
+croniter>=1.3.0           # Cron parsing
+bcrypt>=4.0.0             # Password hashing
+cryptography>=41.0.0      # Data encryption
 ```
-## 常见问题
-### Gmail怎么获取应用密码
-开启2fa，然后在这里创建应用密码
 
-https://support.google.com/mail/answer/185833?hl=zh-Hans
+## FAQ
 
+### How do I get an app password for Gmail?
 
-### 怎么获取tg的群组id 和 用户id
-#### 获取个人 ID (User ID)
-在 Telegram 搜索框搜索 @userinfobot 或 @getmyid_bot。
+Enable 2FA, then create an app password here:
 
-点击 Start。
+https://support.google.com/mail/answer/185833?hl=en
 
-机器人会立即回复你的 User ID（一串数字）。
+### How do I get Telegram group IDs and user IDs?
 
-如果你想知道别人的 ID：只需将对方发给你的消息转发给这个机器人，它就会显示该用户的 ID。
+#### Get a personal ID (User ID)
+Search for `@userinfobot` or `@getmyid_bot` in Telegram.
 
+Tap Start.
 
-#### 获取群组 ID (Group ID)
-将上述机器人（如 @getmyid_bot）拉进你的群组。
+The bot will reply with your User ID immediately, which is a number.
 
-在群组里输入 /myid（或者机器人指定的指令）。
+To find someone else's ID, forward one of their messages to the bot and it will show that user's ID.
 
-机器人会返回该群组的 ID。
+#### Get a group ID (Group ID)
+Add one of the bots above, such as `@getmyid_bot`, to your group.
 
-注意： 普通群组 ID 通常以数字开头，而**超级群组（Supergroup）或频道（Channel）**的 ID 通常以 -100 开头。
+Type `/myid` in the group, or use the command specified by the bot.
 
-## 🤝 贡献
+The bot will return the group ID.
 
-欢迎提交 Issue 和 Pull Request！
+Note: normal group IDs usually start with a number, while **supergroup** or **channel** IDs usually start with `-100`.
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome!
 
 ```bash
 git clone https://github.com/assast/outlookEmail.git
@@ -518,29 +533,3 @@ source venv/bin/activate
 pip install -r requirements.txt
 python web_outlook_app.py
 ```
-
-## 📄 许可证
-
-MIT License - 详见 [LICENSE](LICENSE)
-
-## 🙏 致谢
-本项目已在 [LINUX DO 社区](https://linux.do/) 发布，感谢社区的支持与反馈。
-
-- [Microsoft Graph API](https://docs.microsoft.com/graph/)
-- [GPTMail](https://mail.chatgpt.org.uk)
-- [Flask](https://flask.palletsprojects.com/)
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=assast/outlookEmail&type=Date)](https://star-history.com/#assast/outlookEmail&Date)
-
----
-
-**⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！你的 Star 是我持续更新的动力！** ⭐
-
-初次维护一个项目，2026年04月11日15:45:33才发现有几个pull没合并，非常抱歉，这是我的联系方式如果我没看到的话，可以提醒我一下，有好的建议也可以提，感谢~
-邮箱：u3794336@outlook.com
-
-## 免责声明
-本项目仅供学习、研究和技术交流使用，请遵守相关平台和服务条款，不要用于违规、滥用或非法用途。
-因使用本项目产生的任何风险和后果，由使用者自行承担。

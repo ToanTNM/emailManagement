@@ -18,7 +18,7 @@ Prevent accidental direct development on `main`, reduce noisy release/build acti
 Recommended settings:
 
 - Require a pull request before merging
-- Require at least 1 approval (optional if solo-maintained, but recommended if collaborators join later)
+- Require at least 1 approval (optional if solo-maintained, but recommended if collaborators may join later)
 - Dismiss stale approvals when new commits are pushed
 - Require status checks to pass before merging
 - Require branches to be up to date before merging
@@ -26,7 +26,7 @@ Recommended settings:
 - Restrict force pushes
 - Restrict branch deletion
 
-### Suggested required checks for `main`
+### Suggested Required Checks for `main`
 
 At minimum:
 
@@ -46,8 +46,8 @@ Recommended lighter rules:
 
 1. Develop on `dev`
 2. Push incremental changes to `dev`
-3. Verify app behavior / CI status
-4. Merge `dev` into `main` only for releasable states
+3. Verify app behavior and CI status
+4. Merge `dev` into `main` only when the code is releasable
 5. Update `VERSION` and `CHANGELOG.md`
 6. Push a version tag such as `v1.0.1`
 
@@ -75,7 +75,7 @@ Current repository policy implemented in Actions:
 - `main` represents release-ready code
 - Version tags (`vX.Y.Z`) represent formal releases
 - GitHub Release notes should be sourced from `CHANGELOG.md`
-- Avoid tagging if `VERSION`, `CHANGELOG.md`, and actual shipped code are out of sync
+- Avoid tagging if `VERSION`, `CHANGELOG.md`, and the shipped code are out of sync
 
 ## Optional Future Enhancements
 

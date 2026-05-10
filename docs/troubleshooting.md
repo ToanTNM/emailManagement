@@ -1,77 +1,77 @@
-# 🛠️ 故障排查与常见问题
+# Troubleshooting and FAQs
 
-## 故障排查
+## Troubleshooting
 
-### 容器无法启动
+### Container Will Not Start
 
-**检查步骤：**
+**Checks:**
 
 ```bash
-# 1. 查看容器状态
+# 1. Check container status
 docker ps -a
 
-# 2. 查看应用日志
+# 2. Check application logs
 docker logs outlook-mail-reader
 
-# 3. 检查端口占用
+# 3. Check whether the port is already in use
 lsof -i :5000
 
-# 4. 重新拉取镜像并重启
+# 4. Pull the image again and restart
 docker pull ghcr.io/assast/outlookemail:latest
 docker-compose down
 docker-compose up -d
 ```
 
-**正确的日志应该显示：**
+**Expected logs should look like:**
 ```
 ============================================================
-Outlook 邮件 Web 应用已初始化
-数据库文件: data/outlook_accounts.db
+Outlook Mail Web App initialized
+Database file: data/outlook_accounts.db
 GPTMail API: https://mail.chatgpt.org.uk
 ============================================================
 ```
 
-### 数据库表不存在错误
+### Database Table Missing
 
-**错误信息：** `sqlite3.OperationalError: no such table: settings`
+**Error:** `sqlite3.OperationalError: no such table: settings`
 
-**原因：** 数据库未初始化或损坏
+**Cause:** The database was not initialized or is corrupted
 
-**解决方法：**
+**Fix:**
 
 ```bash
-# 方法 1：删除旧数据库，重新初始化
+# Option 1: Delete the old database and reinitialize it
 docker-compose down
 rm -rf data/outlook_accounts.db
 docker-compose up -d
 
-# 方法 2：手动初始化数据库
+# Option 2: Initialize the database manually
 docker exec outlook-mail-reader python -c "from web_outlook_app import init_db; init_db()"
 docker-compose restart
 
-# 方法 3：使用最新镜像
+# Option 3: Use the latest image
 docker pull ghcr.io/assast/outlookemail:latest
 docker-compose down
 docker-compose up -d
 ```
 
-### 无法获取邮件
+### Unable to Fetch Mail
 
-**可能原因：**
-1. Refresh Token 过期或无效
-2. Client ID 错误
-3. API 权限不足
-4. 网络连接问题
+**Possible causes:**
+1. Refresh Token expired or invalid
+2. Client ID is wrong
+3. API permissions are insufficient
+4. Network connectivity issues
 
-**解决方法：**
+**Fix:**
 
-1. **重新获取 Refresh Token** - 使用内置的 OAuth2 助手重新获取
-2. **检查 API 权限** - 确保已添加所需的 API 权限
-3. **查看详细错误** - 打开浏览器开发者工具（F12），查看 Network 标签
+1. **Re-acquire the Refresh Token** - use the built-in OAuth2 helper again
+2. **Check API permissions** - make sure the required permissions have been added
+3. **Inspect the detailed error** - open the browser developer tools (F12) and check the Network tab
 
-### 502 错误（Nginx）
+### 502 Error (Nginx)
 
-**原因：** 应用未正常启动或端口配置错误
+**Cause:** The app did not start correctly or the port configuration is wrong
 
 ```bash
 docker ps
@@ -82,27 +82,27 @@ docker-compose restart
 sudo systemctl reload nginx
 ```
 
-### 临时邮箱功能不可用
+### Temporary Mailbox Features Not Working
 
-1. **更新 API Key** - 在「⚙️ 设置」中更新 GPTMail API Key
-2. **检查服务状态** - 访问 GPTMail 官网确认服务状态
+1. **Update the API Key** - update the GPTMail API Key in "Settings"
+2. **Check service status** - visit the GPTMail website and confirm the service is up
 
-### Session 过期问题
+### Session Expired
 
-1. **服务器部署时设置固定 SECRET_KEY**
+1. **Set a fixed `SECRET_KEY` in server deployments**
    ```yaml
    environment:
      - SECRET_KEY=your-fixed-secret-key-here
    ```
-   使用 `python -c 'import secrets; print(secrets.token_hex(32))'` 生成
+   Generate one with `python -c 'import secrets; print(secrets.token_hex(32))'`
 
-   如果使用 Windows `exe`，程序会在首次启动时自动生成并保存固定 `SECRET_KEY`，不要删除对应数据目录下的密钥文件。
+   If you use the Windows `exe`, the app automatically generates and saves a fixed `SECRET_KEY` on first launch. Do not delete the key file in the data directory.
 
-2. 默认 Session 有效期为 7 天，重启应用不会导致 Session 失效（使用固定 SECRET_KEY）
+2. The default session lifetime is 7 days, and restarting the app will not invalidate the session when a fixed `SECRET_KEY` is used.
 
-### 数据库锁定错误
+### Database Locked
 
-**错误信息：** `sqlite3.OperationalError: database is locked`
+**Error:** `sqlite3.OperationalError: database is locked`
 
 ```bash
 docker-compose restart
@@ -114,31 +114,31 @@ docker-compose up -d
 
 ---
 
-## 常见问题
+## FAQs
 
-### Q: 为什么无法获取邮件？
-A: 请检查：(1) Refresh Token 是否有效 (2) Client ID 是否正确 (3) Azure 应用 API 权限 (4) 网络连接 (5) 尝试重新获取 Token
+### Q: Why can't I fetch mail?
+A: Check: (1) whether the Refresh Token is valid, (2) whether the Client ID is correct, (3) whether the Azure app has the required permissions, (4) whether the network is working, and (5) try obtaining the token again.
 
-### Q: 如何获取 Refresh Token？
-A: 使用内置 OAuth2 助手：点击「获取 Token」→「生成授权链接」→ 浏览器授权 → 复制授权后 URL → 粘贴换取 Token
+### Q: How do I get a Refresh Token?
+A: Use the built-in OAuth2 helper: click "Get Token" -> "Generate authorization link" -> authorize in the browser -> copy the callback URL -> paste it into the token exchange form.
 
-### Q: 临时邮箱功能如何使用？
-A: 点击「临时邮箱」分组 → 「生成临时邮箱」→ 选择邮箱 →「获取邮件」
+### Q: How do I use temporary mailboxes?
+A: Click the "Temporary Mailbox" group -> "Generate temporary mailbox" -> choose a mailbox -> "Fetch Mail".
 
-### Q: 如何修改登录密码？
-A: (1) Web 界面：「⚙️ 设置」中修改 (2) 环境变量：`LOGIN_PASSWORD`
+### Q: How do I change the login password?
+A: (1) In the web UI under "Settings" or (2) via the environment variable `LOGIN_PASSWORD`.
 
-### Q: 数据存储在哪里？
-A: SQLite 数据库 `data/outlook_accounts.db`，建议定期备份
+### Q: Where is data stored?
+A: In the SQLite database `data/outlook_accounts.db`; regular backups are recommended.
 
-### Q: 支持哪些邮件文件夹？
-A: 收件箱（Inbox）、垃圾邮件（Junk Email）、已删除邮件（Deleted Items）
+### Q: Which mail folders are supported?
+A: Inbox, Junk Email, and Deleted Items.
 
-### Q: 如何批量导入邮箱？
-A: 默认格式：`邮箱----密码----client_id----refresh_token`，每行一个；也支持在导入弹窗中切换为 `邮箱----密码----refresh_token----client_id`
+### Q: How do I bulk import mailboxes?
+A: Default format: `email----password----client_id----refresh_token`, one per line. You can also switch the import dialog to `email----password----refresh_token----client_id`.
 
-### Q: 如何导出邮箱账号？
-A: (1) 导出单个分组 (2) 导出所有 (3) 导出选中分组
+### Q: How do I export mailbox accounts?
+A: (1) Export one group (2) Export all (3) Export selected groups.
 
-### Q: Docker 容器无法启动怎么办？
-A: (1) `docker logs outlook-mail-reader` (2) 检查端口 (3) 检查目录权限 (4) 拉取最新镜像
+### Q: What should I do if the Docker container will not start?
+A: (1) `docker logs outlook-mail-reader` (2) check the port (3) check directory permissions (4) pull the latest image.

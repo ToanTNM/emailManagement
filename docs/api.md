@@ -1,152 +1,152 @@
-# API 文档
+# API Documentation
 
-本文档基于当前代码实现整理，目标是让 AI Agent、脚本或外部系统可以直接对接完整 API，而不是只给人看的零散说明。
+This document is based on the current codebase and is intended to let AI agents, scripts, or external systems integrate with the full API directly instead of relying on fragmented human-only notes.
 
-## AI 对接总览
+## AI Integration Overview
 
-- 基础地址：`http(s)://<host>:<port>`
-- 所有路由都在 `/api/*`
-- 接口分为两类：
-  - 对外 API：`/api/external/*`，使用 API Key
-  - 完整管理 API：其余 `/api/*`，先登录 Web，再带 Session Cookie
-- 写操作默认使用 JSON 请求体，`Content-Type: application/json`
-- 大多数接口返回 JSON；少数接口返回文件下载或 SSE 事件流
+- Base URL: `http(s)://<host>:<port>`
+- All routes live under `/api/*`
+- Two API groups exist:
+  - External API: `/api/external/*`, authenticated with an API Key
+  - Full management API: all other `/api/*` routes, authenticated with a web session cookie after login
+- Write operations use JSON request bodies with `Content-Type: application/json`
+- Most endpoints return JSON; a few return file downloads or SSE streams
 
-推荐对接顺序：
+Recommended integration order:
 
-1. 登录 Web，保存 Session Cookie
-2. 调 `GET /api/csrf-token` 获取 CSRF Token
-3. 读接口直接调 `GET`
-4. 写接口在请求头带 `X-CSRFToken`
+1. Log in to the web app and keep the session cookie
+2. Call `GET /api/csrf-token` to fetch a CSRF token
+3. Call read-only endpoints directly with `GET`
+4. Include `X-CSRFToken` on write requests
 
-## 接口目录
+## Endpoint Index
 
-### 基础与鉴权
+### Basics and Authentication
 
-| 方法 | 路径 | 鉴权 | 返回类型 | 说明 |
+| Method | Path | Auth | Response | Description |
 | --- | --- | --- | --- | --- |
-| GET | `/api/version-status` | Session | JSON | 当前版本与仓库版本状态 |
-| GET | `/api/csrf-token` | Session | JSON | 获取当前登录会话对应的 CSRF Token |
+| GET | `/api/version-status` | Session | JSON | Current version vs repository version |
+| GET | `/api/csrf-token` | Session | JSON | Get the CSRF token for the current session |
 
-### 对外 API
+### External API
 
-| 方法 | 路径 | 鉴权 | 返回类型 | 说明 |
+| Method | Path | Auth | Response | Description |
 | --- | --- | --- | --- | --- |
-| GET | `/api/external/accounts` | API Key | JSON | 获取普通邮箱账号列表 |
-| GET | `/api/external/emails` | API Key | JSON | 获取指定邮箱邮件列表 |
+| GET | `/api/external/accounts` | API Key | JSON | Get the mailbox account list |
+| GET | `/api/external/emails` | API Key | JSON | Get emails for a mailbox |
 
-### 分组、账号、标签、项目
+### Groups, Accounts, Tags, Projects
 
-| 方法 | 路径 | 鉴权 | 返回类型 | 说明 |
+| Method | Path | Auth | Response | Description |
 | --- | --- | --- | --- | --- |
-| GET | `/api/groups` | Session | JSON | 获取分组列表 |
-| GET | `/api/groups/<group_id>` | Session | JSON | 获取单个分组 |
-| POST | `/api/groups` | Session + CSRF | JSON | 创建分组 |
-| PUT | `/api/groups/<group_id>` | Session + CSRF | JSON | 更新分组 |
-| DELETE | `/api/groups/<group_id>` | Session + CSRF | JSON | 删除分组 |
-| PUT | `/api/groups/reorder` | Session + CSRF | JSON | 调整分组顺序 |
-| POST | `/api/export/verify` | Session + CSRF | JSON | 获取导出二次验证令牌 |
-| GET | `/api/groups/<group_id>/export` | Session | `text/plain` 下载 | 导出单个分组账号 |
-| GET | `/api/accounts/export` | Session | `text/plain` 下载 | 导出全部账号 |
-| POST | `/api/accounts/export-selected` | Session + CSRF | `text/plain` 下载 | 导出选中分组账号 |
-| GET | `/api/accounts` | Session | JSON | 获取账号列表 |
-| GET | `/api/accounts/search` | Session | JSON | 搜索账号 |
-| GET | `/api/accounts/<account_id>` | Session | JSON | 获取单个账号 |
-| POST | `/api/accounts` | Session + CSRF | JSON | 批量导入账号 |
-| PUT | `/api/accounts/<account_id>` | Session + CSRF | JSON | 更新账号 |
-| DELETE | `/api/accounts/<account_id>` | Session + CSRF | JSON | 按 ID 删除账号 |
-| DELETE | `/api/accounts/email/<email_addr>` | Session + CSRF | JSON | 按邮箱删除账号 |
-| POST | `/api/accounts/batch-delete` | Session + CSRF | JSON | 批量删除账号 |
-| GET | `/api/accounts/<account_id>/aliases` | Session | JSON | 获取账号别名 |
-| PUT | `/api/accounts/<account_id>/aliases` | Session + CSRF | JSON | 整体替换账号别名 |
-| POST | `/api/accounts/batch-update-group` | Session + CSRF | JSON | 批量改分组 |
-| POST | `/api/accounts/batch-update-forwarding` | Session + CSRF | JSON | 批量改转发开关 |
-| GET | `/api/tags` | Session | JSON | 获取标签列表 |
-| POST | `/api/tags` | Session + CSRF | JSON | 创建标签 |
-| DELETE | `/api/tags/<tag_id>` | Session + CSRF | JSON | 删除标签 |
-| POST | `/api/accounts/tags` | Session + CSRF | JSON | 批量改账号标签 |
-| GET | `/api/projects` | Session | JSON | 获取项目列表 |
-| GET | `/api/projects/<project_key>` | Session | JSON | 获取项目详情 |
-| POST | `/api/projects/start` | Session + CSRF | JSON | 创建或补全项目范围 |
-| GET | `/api/projects/<project_key>/accounts` | Session | JSON | 获取项目账号列表 |
-| POST | `/api/projects/<project_key>/claim-random` | Session + CSRF | JSON | 随机领取项目邮箱 |
-| POST | `/api/projects/<project_key>/complete-success` | Session + CSRF | JSON | 标记项目邮箱成功 |
-| POST | `/api/projects/<project_key>/complete-failed` | Session + CSRF | JSON | 标记项目邮箱失败 |
-| POST | `/api/projects/<project_key>/release` | Session + CSRF | JSON | 释放领取中的项目邮箱 |
-| POST | `/api/projects/<project_key>/reset-failed` | Session + CSRF | JSON | 把失败状态重置回可领取 |
-| POST | `/api/projects/<project_key>/remove-account` | Session + CSRF | JSON | 从项目移出邮箱 |
-| POST | `/api/projects/<project_key>/restore-account` | Session + CSRF | JSON | 恢复已移出的项目邮箱 |
+| GET | `/api/groups` | Session | JSON | Get the group list |
+| GET | `/api/groups/<group_id>` | Session | JSON | Get one group |
+| POST | `/api/groups` | Session + CSRF | JSON | Create a group |
+| PUT | `/api/groups/<group_id>` | Session + CSRF | JSON | Update a group |
+| DELETE | `/api/groups/<group_id>` | Session + CSRF | JSON | Delete a group |
+| PUT | `/api/groups/reorder` | Session + CSRF | JSON | Reorder groups |
+| POST | `/api/export/verify` | Session + CSRF | JSON | Get an export verification token |
+| GET | `/api/groups/<group_id>/export` | Session | `text/plain` download | Export one group's accounts |
+| GET | `/api/accounts/export` | Session | `text/plain` download | Export all accounts |
+| POST | `/api/accounts/export-selected` | Session + CSRF | `text/plain` download | Export selected groups |
+| GET | `/api/accounts` | Session | JSON | Get account list |
+| GET | `/api/accounts/search` | Session | JSON | Search accounts |
+| GET | `/api/accounts/<account_id>` | Session | JSON | Get one account |
+| POST | `/api/accounts` | Session + CSRF | JSON | Bulk import accounts |
+| PUT | `/api/accounts/<account_id>` | Session + CSRF | JSON | Update an account |
+| DELETE | `/api/accounts/<account_id>` | Session + CSRF | JSON | Delete account by ID |
+| DELETE | `/api/accounts/email/<email_addr>` | Session + CSRF | JSON | Delete account by email |
+| POST | `/api/accounts/batch-delete` | Session + CSRF | JSON | Bulk delete accounts |
+| GET | `/api/accounts/<account_id>/aliases` | Session | JSON | Get aliases for one account |
+| PUT | `/api/accounts/<account_id>/aliases` | Session + CSRF | JSON | Replace all aliases for one account |
+| POST | `/api/accounts/batch-update-group` | Session + CSRF | JSON | Bulk update groups |
+| POST | `/api/accounts/batch-update-forwarding` | Session + CSRF | JSON | Bulk toggle forwarding |
+| GET | `/api/tags` | Session | JSON | Get tags |
+| POST | `/api/tags` | Session + CSRF | JSON | Create a tag |
+| DELETE | `/api/tags/<tag_id>` | Session + CSRF | JSON | Delete a tag |
+| POST | `/api/accounts/tags` | Session + CSRF | JSON | Bulk update account tags |
+| GET | `/api/projects` | Session | JSON | Get project list |
+| GET | `/api/projects/<project_key>` | Session | JSON | Get project details |
+| POST | `/api/projects/start` | Session + CSRF | JSON | Create or complete a project scope |
+| GET | `/api/projects/<project_key>/accounts` | Session | JSON | Get project accounts |
+| POST | `/api/projects/<project_key>/claim-random` | Session + CSRF | JSON | Claim one random project mailbox |
+| POST | `/api/projects/<project_key>/complete-success` | Session + CSRF | JSON | Mark a claimed mailbox as success |
+| POST | `/api/projects/<project_key>/complete-failed` | Session + CSRF | JSON | Mark a claimed mailbox as failed |
+| POST | `/api/projects/<project_key>/release` | Session + CSRF | JSON | Release a claimed mailbox |
+| POST | `/api/projects/<project_key>/reset-failed` | Session + CSRF | JSON | Reset failed to claimable |
+| POST | `/api/projects/<project_key>/remove-account` | Session + CSRF | JSON | Remove a mailbox from the project |
+| POST | `/api/projects/<project_key>/restore-account` | Session + CSRF | JSON | Restore a removed mailbox |
 
-### 刷新、日志、邮件、设置、临时邮箱
+### Refresh, Logs, Mail, Settings, Temporary Mailboxes
 
-| 方法 | 路径 | 鉴权 | 返回类型 | 说明 |
+| Method | Path | Auth | Response | Description |
 | --- | --- | --- | --- | --- |
-| POST | `/api/accounts/<account_id>/refresh` | Session + CSRF | JSON | 刷新单个 Outlook 账号 |
-| POST | `/api/accounts/refresh-selected` | Session + CSRF | JSON | 刷新选中账号 |
-| POST | `/api/accounts/refresh-selected-stream` | Session + CSRF | JSON | 初始化选中账号流式刷新任务 |
-| GET | `/api/accounts/refresh-selected-stream/<task_id>` | Session | `text/event-stream` | 订阅选中账号流式刷新任务 |
-| GET | `/api/accounts/refresh-all` | Session | `text/event-stream` | 全量刷新账号 |
-| POST | `/api/accounts/<account_id>/retry-refresh` | Session + CSRF | JSON | 重试单个失败账号 |
-| GET | `/api/accounts/refresh-failed-stream` | Session | `text/event-stream` | 流式重试失败账号 |
-| POST | `/api/accounts/refresh-failed` | Session + CSRF | JSON | 批量重试失败账号 |
-| GET | `/api/accounts/trigger-scheduled-refresh` | Session | `text/event-stream` | 手动触发一次定时刷新逻辑 |
-| POST | `/api/accounts/stop-full-refresh` | Session + CSRF | JSON | 请求停止当前全量刷新 |
-| GET | `/api/accounts/refresh-logs` | Session | JSON | 刷新日志列表 |
-| GET | `/api/accounts/<account_id>/refresh-logs` | Session | JSON | 单账号刷新日志 |
-| GET | `/api/accounts/refresh-logs/failed` | Session | JSON | 当前失败邮箱快照 |
-| GET | `/api/accounts/refresh-stats` | Session | JSON | 刷新统计 |
-| GET | `/api/accounts/refresh-status-list` | Session | JSON | Token 刷新管理页数据 |
-| GET | `/api/accounts/forwarding-logs` | Session | JSON | 转发日志列表 |
-| GET | `/api/accounts/forwarding-logs/failed` | Session | JSON | 最近失败转发记录 |
-| GET | `/api/accounts/<account_id>/forwarding-logs` | Session | JSON | 单账号转发日志 |
-| POST | `/api/accounts/trigger-forwarding-check` | Session + CSRF | JSON | 立即触发一次转发检查 |
-| POST | `/api/accounts/<account_id>/forwarding/reset-cursor` | Session + CSRF | JSON | 重置单账号转发游标 |
-| GET | `/api/emails/<email_addr>` | Session | JSON | 获取内部邮件列表 |
-| POST | `/api/emails/mark-read` | Session + CSRF | JSON | 批量标记邮件为已读 |
-| POST | `/api/emails/delete` | Session + CSRF | JSON | 批量删除邮件 |
-| GET | `/api/email/<email_addr>/<message_id>` | Session | JSON | 获取邮件详情 |
-| GET | `/api/email/<email_addr>/<message_id>/attachments/<attachment_id>` | Session | 文件流 | 下载附件 |
-| GET | `/api/email/<email_addr>/<message_id>/attachments/download-all` | Session | ZIP 文件流 | 打包下载全部附件 |
-| GET | `/api/temp-emails` | Session | JSON | 获取临时邮箱列表 |
-| POST | `/api/temp-emails/import` | Session + CSRF | JSON | 批量导入临时邮箱 |
-| POST | `/api/temp-emails/batch-delete` | Session + CSRF | JSON | 批量删除临时邮箱 |
-| POST | `/api/temp-emails/tags` | Session + CSRF | JSON | 批量改临时邮箱标签 |
-| GET | `/api/duckmail/domains` | Session | JSON | 获取 DuckMail 域名 |
-| GET | `/api/cloudflare/domains` | Session | JSON | 获取 Cloudflare 域名 |
-| POST | `/api/temp-emails/generate` | Session + CSRF | JSON | 生成临时邮箱 |
-| DELETE | `/api/temp-emails/<email_addr>` | Session + CSRF | JSON | 删除临时邮箱 |
-| GET | `/api/temp-emails/<email_addr>/messages` | Session | JSON | 获取临时邮箱邮件列表 |
-| GET | `/api/temp-emails/<email_addr>/messages/<message_id>` | Session | JSON | 获取临时邮件详情 |
-| DELETE | `/api/temp-emails/<email_addr>/messages/<message_id>` | Session + CSRF | JSON | 删除单封临时邮件，当前为关闭状态 |
-| DELETE | `/api/temp-emails/<email_addr>/clear` | Session + CSRF | JSON | 清空临时邮箱，当前为关闭状态 |
-| POST | `/api/temp-emails/<email_addr>/refresh` | Session + CSRF | JSON | 主动刷新临时邮箱邮件 |
-| GET | `/api/oauth/auth-url` | Session | JSON | 生成 Microsoft OAuth 授权链接 |
-| POST | `/api/oauth/exchange-token` | Session + CSRF | JSON | 用回调 URL 换 Refresh Token |
-| POST | `/api/settings/validate-cron` | Session + CSRF | JSON | 校验 Cron 表达式 |
-| GET | `/api/settings` | Session | JSON | 获取系统设置 |
-| PUT | `/api/settings` | Session + CSRF | JSON | 更新系统设置 |
-| POST | `/api/settings/test-forward-channel` | Session + CSRF | JSON | 直接测试转发渠道 |
+| POST | `/api/accounts/<account_id>/refresh` | Session + CSRF | JSON | Refresh one Outlook account |
+| POST | `/api/accounts/refresh-selected` | Session + CSRF | JSON | Refresh selected accounts |
+| POST | `/api/accounts/refresh-selected-stream` | Session + CSRF | JSON | Initialize a stream refresh task for selected accounts |
+| GET | `/api/accounts/refresh-selected-stream/<task_id>` | Session | `text/event-stream` | Subscribe to the stream refresh task |
+| GET | `/api/accounts/refresh-all` | Session | `text/event-stream` | Refresh all accounts |
+| POST | `/api/accounts/<account_id>/retry-refresh` | Session + CSRF | JSON | Retry one failed refresh |
+| GET | `/api/accounts/refresh-failed-stream` | Session | `text/event-stream` | Stream retry for failed accounts |
+| POST | `/api/accounts/refresh-failed` | Session + CSRF | JSON | Retry failed accounts |
+| GET | `/api/accounts/trigger-scheduled-refresh` | Session | `text/event-stream` | Manually trigger scheduled refresh |
+| POST | `/api/accounts/stop-full-refresh` | Session + CSRF | JSON | Stop the current full refresh task |
+| GET | `/api/accounts/refresh-logs` | Session | JSON | Refresh log list |
+| GET | `/api/accounts/<account_id>/refresh-logs` | Session | JSON | Refresh logs for one account |
+| GET | `/api/accounts/refresh-logs/failed` | Session | JSON | Snapshot of failed accounts |
+| GET | `/api/accounts/refresh-stats` | Session | JSON | Refresh statistics |
+| GET | `/api/accounts/refresh-status-list` | Session | JSON | Data for the refresh management page |
+| GET | `/api/accounts/forwarding-logs` | Session | JSON | Forwarding log list |
+| GET | `/api/accounts/forwarding-logs/failed` | Session | JSON | Recent failed forwarding records |
+| GET | `/api/accounts/<account_id>/forwarding-logs` | Session | JSON | Forwarding logs for one account |
+| POST | `/api/accounts/trigger-forwarding-check` | Session + CSRF | JSON | Trigger one forwarding check immediately |
+| POST | `/api/accounts/<account_id>/forwarding/reset-cursor` | Session + CSRF | JSON | Reset one account's forwarding cursor |
+| GET | `/api/emails/<email_addr>` | Session | JSON | Get internal mail list |
+| POST | `/api/emails/mark-read` | Session + CSRF | JSON | Bulk mark emails as read |
+| POST | `/api/emails/delete` | Session + CSRF | JSON | Bulk delete emails |
+| GET | `/api/email/<email_addr>/<message_id>` | Session | JSON | Get email details |
+| GET | `/api/email/<email_addr>/<message_id>/attachments/<attachment_id>` | Session | File stream | Download one attachment |
+| GET | `/api/email/<email_addr>/<message_id>/attachments/download-all` | Session | ZIP stream | Download all attachments as a ZIP |
+| GET | `/api/temp-emails` | Session | JSON | Get temporary mailbox list |
+| POST | `/api/temp-emails/import` | Session + CSRF | JSON | Bulk import temporary mailboxes |
+| POST | `/api/temp-emails/batch-delete` | Session + CSRF | JSON | Bulk delete temporary mailboxes |
+| POST | `/api/temp-emails/tags` | Session + CSRF | JSON | Bulk update temporary mailbox tags |
+| GET | `/api/duckmail/domains` | Session | JSON | Get DuckMail domains |
+| GET | `/api/cloudflare/domains` | Session | JSON | Get Cloudflare domains |
+| POST | `/api/temp-emails/generate` | Session + CSRF | JSON | Generate a temporary mailbox |
+| DELETE | `/api/temp-emails/<email_addr>` | Session + CSRF | JSON | Delete a temporary mailbox |
+| GET | `/api/temp-emails/<email_addr>/messages` | Session | JSON | Get messages for a temporary mailbox |
+| GET | `/api/temp-emails/<email_addr>/messages/<message_id>` | Session | JSON | Get one temporary mail message |
+| DELETE | `/api/temp-emails/<email_addr>/messages/<message_id>` | Session + CSRF | JSON | Delete one temporary mail message, currently disabled |
+| DELETE | `/api/temp-emails/<email_addr>/clear` | Session + CSRF | JSON | Clear a temporary mailbox, currently disabled |
+| POST | `/api/temp-emails/<email_addr>/refresh` | Session + CSRF | JSON | Refresh a temporary mailbox manually |
+| GET | `/api/oauth/auth-url` | Session | JSON | Generate a Microsoft OAuth authorization URL |
+| POST | `/api/oauth/exchange-token` | Session + CSRF | JSON | Exchange a callback URL for a Refresh Token |
+| POST | `/api/settings/validate-cron` | Session + CSRF | JSON | Validate a Cron expression |
+| GET | `/api/settings` | Session | JSON | Get system settings |
+| PUT | `/api/settings` | Session + CSRF | JSON | Update system settings |
+| POST | `/api/settings/test-forward-channel` | Session + CSRF | JSON | Test a forwarding channel directly |
 
-## 认证
+## Authentication
 
-### 对外 API
+### External API
 
-对外 API 使用 API Key 认证，支持两种方式：
+The external API uses API Key authentication and supports two forms:
 
 - Header: `X-API-Key: your-api-key`
 - Query: `?api_key=your-api-key`
 
-可在 Web 界面 `设置 -> 对外 API Key` 中配置。
+You can configure it in the web UI under `Settings -> External API Key`.
 
-### 完整 API
+### Full API
 
-完整 API 需要先登录 Web 界面并携带 Session Cookie。
+The full API requires logging in to the web UI first and sending the session cookie.
 
 ### CSRF
 
-所有内部写操作默认都应带 `X-CSRFToken` 请求头，值来自 `GET /api/csrf-token`。
+All internal write requests should include `X-CSRFToken`, with the token obtained from `GET /api/csrf-token`.
 
-典型请求头：
+Typical headers:
 
 ```http
 Content-Type: application/json
@@ -154,25 +154,25 @@ X-CSRFToken: <csrf-token>
 Cookie: session=<session-cookie>
 ```
 
-### 通用响应约定
+### General Response Conventions
 
-绝大多数 JSON 接口都遵循下面的约定：
+Most JSON endpoints follow these rules:
 
-- `success=true` 表示本次调用整体成功
-- `success=false` 表示调用失败，通常同时返回 `error` 或 `message`
-- 部分接口会返回：
-  - `partial=true`：部分成功
-  - `details`：更细的失败原因
-  - `total`、`count`、`items`：列表或统计数据
-- 未捕获异常统一返回：
+- `success=true` means the request succeeded overall
+- `success=false` means the request failed, usually with `error` or `message`
+- Some endpoints also return:
+  - `partial=true`: partial success
+  - `details`: more detailed failure reasons
+  - `total`, `count`, `items`: list or statistics data
+- Uncaught exceptions return:
   - HTTP `500`
-  - `{"success": false, "error": "<异常信息>"}`
-- 邮件、IMAP、Graph 相关接口在失败时，`error` 有时不是字符串，而是结构化对象：
+  - `{"success": false, "error": "<exception message>"}`
+- Email, IMAP, and Graph endpoints may return `error` as either a string or a structured object:
 
 ```json
 {
   "code": "IMAP_CONNECT_FAILED",
-  "message": "IMAP 连接失败",
+  "message": "IMAP connection failed",
   "type": "IMAPConnectError",
   "status": 502,
   "details": "",
@@ -180,13 +180,13 @@ Cookie: session=<session-cookie>
 }
 ```
 
-AI 客户端应优先判断 `success`，再兼容 `error` 既可能是字符串，也可能是对象。
+Clients should check `success` first and then handle `error` as either a string or an object.
 
 ### GET `/api/csrf-token`
 
-获取当前登录会话可用的 CSRF Token。该接口要求已登录，并且返回值与当前 Session 绑定。
+Returns the CSRF token bound to the current session. The endpoint requires login, and the token is tied to the active session.
 
-成功响应示例：
+Success example:
 
 ```json
 {
@@ -195,7 +195,7 @@ AI 客户端应优先判断 `success`，再兼容 `error` 既可能是字符串�
 }
 ```
 
-若当前未启用 CSRF，会返回：
+If CSRF is disabled, it returns:
 
 ```json
 {
@@ -204,19 +204,19 @@ AI 客户端应优先判断 `success`，再兼容 `error` 既可能是字符串�
 }
 ```
 
-响应头会显式禁止缓存，并带 `Vary: Cookie`，AI 客户端不要跨会话复用这个 token。
+The response is marked as non-cacheable and includes `Vary: Cookie`. Do not reuse this token across sessions.
 
 ### GET `/api/version-status`
 
-获取当前运行版本与仓库最新版本的比较状态。
+Returns the comparison between the current running version and the latest repository version.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `refresh` | bool-like string | 否 | 传 `1`、`true`、`yes` 时强制刷新远程版本缓存 |
+| `refresh` | bool-like string | No | When set to `1`, `true`, or `yes`, refresh the remote version cache |
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
@@ -227,8 +227,8 @@ AI 客户端应优先判断 `success`，再兼容 `error` 既可能是字符串�
     "latest_release_version": "v2.0.16",
     "latest_repository_version": "v2.0.16",
     "status": "update_available",
-    "badge_label": "可更新",
-    "hint": "发现新版本 v2.0.16",
+    "badge_label": "Update available",
+    "hint": "New version v2.0.16 found",
     "source": "release",
     "update_url": "https://...",
     "release_url": "https://...",
@@ -240,52 +240,52 @@ AI 客户端应优先判断 `success`，再兼容 `error` 既可能是字符串�
 }
 ```
 
-`version_status.status` 常见值：
+Common values for `version_status.status`:
 
 - `update_available`
 - `up_to_date`
 - `ahead`
 - `unknown`
 
-## 邮箱别名说明
+## Mailbox Aliases
 
-普通账号现在支持配置多个别名邮箱。
+Regular accounts can configure multiple alias addresses.
 
-- 对外 API 和内部邮件接口传入主邮箱或别名邮箱都可以命中同一个账号
-- 返回结果中可能包含：
-  - `requested_email`: 请求里传入的邮箱
-  - `resolved_email`: 实际命中的主邮箱
-  - `matched_alias`: 若通过别名命中，则为对应别名；否则为空
-- 别名邮箱支持常见特殊字符，例如 `+`、`@`、`&`
-  - `@` 可以直接传
-  - `+` 建议编码成 `%2B`
-  - `&` 必须编码成 `%26`
+- The external API and internal mail APIs can resolve either the primary email or an alias to the same account
+- Responses may include:
+  - `requested_email`: the email passed in the request
+  - `resolved_email`: the primary email that was actually matched
+  - `matched_alias`: the alias that matched, if any
+- Alias addresses support common special characters such as `+`, `@`, and `&`
+  - `@` can be used directly
+  - `+` should be URL encoded as `%2B`
+  - `&` must be encoded as `%26`
 
-典型用法：
+Typical flow:
 
-1. 把外部邮箱 B 的邮件自动转发到本项目管理的邮箱 A
-2. 在邮箱 A 下把邮箱 B 设置为别名
-3. 后续直接通过本项目 API，用邮箱 B 作为 `email` 参数取邮件或取验证码
+1. Automatically forward external mailbox B to managed mailbox A
+2. Configure mailbox B as an alias under mailbox A
+3. Later, call the API with mailbox B as the `email` parameter to read mail or verification codes
 
-## 对外 API
+## External API
 
 ### GET `/api/external/accounts`
 
-获取当前系统中已管理的邮箱账号列表，适合外部系统先同步邮箱池，再按邮箱调用 `/api/external/emails` 取邮件。
+Returns the managed mailbox account list, which is useful when an external system wants to sync the mailbox pool first and then fetch mail from `/api/external/emails`.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `group_id` | int | 否 | 仅返回指定分组下的账号 |
-| `limit` | int | 否 | 单页条数，最大 `10000`；不传时保持兼容，返回全部匹配账号 |
-| `offset` | int | 否 | 分页偏移量，默认 `0` |
-| `sort_by` | string | 否 | 排序字段，支持 `created_at`、`email`、`sort_order` |
-| `sort_order` | string | 否 | 排序方向，`asc` 或 `desc`，默认 `desc` |
-| `tag_ids` | string | 否 | 逗号分隔的标签 ID，仅返回包含任一标签的账号 |
-| `include_untagged` | bool | 否 | 与 `tag_ids` 配合使用，是否包含未打标签账号 |
+| `group_id` | int | No | Only return accounts in the specified group |
+| `limit` | int | No | Page size, max `10000`; if omitted, all matches are returned for backward compatibility |
+| `offset` | int | No | Pagination offset, default `0` |
+| `sort_by` | string | No | Sort field, supports `created_at`, `email`, `sort_order` |
+| `sort_order` | string | No | Sort direction, `asc` or `desc`, default `desc` |
+| `tag_ids` | string | No | Comma-separated tag IDs; only accounts with any of these tags are returned |
+| `include_untagged` | bool | No | Used with `tag_ids` to include untagged accounts |
 
-#### 请求示例
+#### Request example
 
 ```bash
 curl -H "X-API-Key: your-api-key" \
@@ -295,7 +295,7 @@ curl -H "X-API-Key: your-api-key" \
   "http://localhost:5000/api/external/accounts?group_id=1"
 ```
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
@@ -308,9 +308,9 @@ curl -H "X-API-Key: your-api-key" \
       "aliases": ["alias@example.com"],
       "alias_count": 1,
       "group_id": 1,
-      "group_name": "默认分组",
+      "group_name": "Default Group",
       "group_color": "#666666",
-      "remark": "主账号",
+      "remark": "Primary account",
       "status": "active",
       "account_type": "outlook",
       "provider": "outlook",
@@ -323,7 +323,7 @@ curl -H "X-API-Key: your-api-key" \
       "tags": [
         {
           "id": 1,
-          "name": "核心",
+          "name": "Core",
           "color": "#1a1a1a"
         }
       ]
@@ -332,29 +332,29 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 返回说明
+#### Notes
 
-- 该接口只返回普通邮箱账号，不包含临时邮箱列表
-- 已隐藏密码、Refresh Token、IMAP 密码等敏感字段
-- 如需拉取某个邮箱的邮件列表，再调用 `/api/external/emails`
+- This endpoint returns only regular mailbox accounts, not temporary mailboxes
+- Sensitive fields such as passwords, Refresh Tokens, and IMAP passwords are hidden
+- To fetch mail for one mailbox, call `/api/external/emails`
 
 ### GET `/api/external/emails`
 
-获取指定邮箱的邮件列表，支持主邮箱、别名邮箱、收件箱/垃圾箱聚合查询。
+Returns the email list for a mailbox. Supports primary email, alias email, and aggregated inbox/junk queries.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `email` | string | 是 | 主邮箱或别名邮箱；若包含 `+`，会先按完整地址匹配，未命中时再按本地部分从右到左逐级去掉 `+suffix` 回退匹配，兼容主邮箱和别名邮箱 |
-| `folder` | string | 否 | `inbox`、`junkemail`、`deleteditems`、`all`。`all` 会同时抓取收件箱和垃圾邮件并按时间倒序合并 |
-| `skip` | int | 否 | 分页偏移，默认 `0`。当 `folder=all` 时，对每个文件夹分别跳过 `skip` 封 |
-| `top` | int | 否 | 返回数量，默认 `1`，最大 `50`。当 `folder=all` 时，表示每个文件夹各取 `top` 封 |
-| `subject_contains` | string | 否 | 仅保留主题中包含该关键字的邮件 |
-| `from_contains` | string | 否 | 仅保留发件人中包含该关键字的邮件 |
-| `keyword` | string | 否 | 在主题、预览、正文中做进一步关键字过滤 |
+| `email` | string | Yes | Primary or alias email. If it contains `+`, the full address is matched first, then the local part is progressively trimmed from right to left by `+suffix` for fallback matching |
+| `folder` | string | No | `inbox`, `junkemail`, `deleteditems`, `all`. `all` fetches inbox and junk mail together and merges them in descending time order |
+| `skip` | int | No | Pagination offset, default `0`. When `folder=all`, this is applied per folder |
+| `top` | int | No | Number of results, default `1`, max `50`. When `folder=all`, this is applied per folder |
+| `subject_contains` | string | No | Keep only emails whose subject contains the keyword |
+| `from_contains` | string | No | Keep only emails whose sender contains the keyword |
+| `keyword` | string | No | Further keyword filtering across subject, preview, and body |
 
-#### 请求示例
+#### Request example
 
 ```bash
 curl -H "X-API-Key: your-api-key" \
@@ -370,7 +370,7 @@ curl -H "X-API-Key: your-api-key" \
   "http://localhost:5000/api/external/emails?email=user%2Balias%40example.com"
 ```
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
@@ -395,59 +395,59 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 聚合模式说明
+#### Aggregated mode
 
-当 `folder=all` 时：
+When `folder=all`:
 
-- 后端会同时抓取 `inbox` 和 `junkemail`
-- `top` 是“每个文件夹各取多少封”
-- 例如 `top=1` 时，最多返回 `收件箱 1 + 垃圾邮件 1 = 2` 封
-- `skip` 也是“每个文件夹各跳过多少封”
-- 结果按标准化后的邮件时间统一倒序排序
-- IMAP 场景会优先使用服务器返回的 `INTERNALDATE`；同时兼容 `Tue, 14 Apr 2026 08:20:50 +0000 (UTC)` 这类时间格式
-- 每条邮件会带上 `folder`
-- 若其中一个文件夹成功、另一个失败，会返回：
+- The backend fetches `inbox` and `junkemail` at the same time
+- `top` means "how many to fetch from each folder"
+- For example, `top=1` can return at most 2 emails total
+- `skip` is also applied per folder
+- The result is merged and sorted by normalized email time in descending order
+- For IMAP, the server-reported `INTERNALDATE` is preferred; timestamps like `Tue, 14 Apr 2026 08:20:50 +0000 (UTC)` are also supported
+- Each email includes its `folder`
+- If one folder succeeds and the other fails, the API returns:
   - `success: true`
   - `partial: true`
-  - `details` 中包含失败文件夹的错误信息
+  - `details` with the failed folder error
 
-## 内部 API
+## Internal API
 
-## 分组管理
+## Group Management
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| GET | `/api/groups` | 无 | 获取所有分组，返回 `account_count`、`sort_position` |
-| GET | `/api/groups/<group_id>` | 路径参数 `group_id` | 获取单个分组详情 |
-| POST | `/api/groups` | JSON: `name`、`description?`、`color?`、`proxy_url?`、`sort_position?` | 创建分组 |
-| PUT | `/api/groups/<group_id>` | JSON: `name`、`description?`、`color?`、`proxy_url?`、`sort_position?` | 更新分组 |
-| DELETE | `/api/groups/<group_id>` | 路径参数 `group_id` | 删除分组，默认分组不能删除 |
-| PUT | `/api/groups/reorder` | JSON: `group_ids: number[]` | 重新排序普通分组 |
+| GET | `/api/groups` | None | Get all groups with `account_count` and `sort_position` |
+| GET | `/api/groups/<group_id>` | Path param `group_id` | Get one group |
+| POST | `/api/groups` | JSON: `name`, `description?`, `color?`, `proxy_url?`, `sort_position?` | Create a group |
+| PUT | `/api/groups/<group_id>` | JSON: `name`, `description?`, `color?`, `proxy_url?`, `sort_position?` | Update a group |
+| DELETE | `/api/groups/<group_id>` | Path param `group_id` | Delete a group; the default group cannot be deleted |
+| PUT | `/api/groups/reorder` | JSON: `group_ids: number[]` | Reorder regular groups |
 
-创建或更新分组请求示例：
+Example create/update payload:
 
 ```json
 {
-  "name": "代理组",
-  "description": "走香港代理",
+  "name": "Proxy Group",
+  "description": "Routes through Hong Kong proxy",
   "color": "#1a1a1a",
   "proxy_url": "http://127.0.0.1:7890",
   "sort_position": 2
 }
 ```
 
-## 导出与二次验证
+## Export and Double Check
 
-导出接口都会先校验一次登录密码，拿到 `verify_token` 后再发起导出。`verify_token` 当前为一次性令牌，默认 5 分钟内有效。
+Every export endpoint first checks the login password. After you obtain `verify_token`, you can start the export. The `verify_token` is one-time use and valid for 5 minutes by default.
 
-| 方法 | 路径 | 参数 | 返回 |
+| Method | Path | Parameters | Returns |
 | --- | --- | --- | --- |
-| POST | `/api/export/verify` | JSON: `password` | JSON，返回 `verify_token` |
-| GET | `/api/groups/<group_id>/export` | Query: `verify_token` | `text/plain` 文件下载 |
-| GET | `/api/accounts/export` | Query: `verify_token` | `text/plain` 文件下载 |
-| POST | `/api/accounts/export-selected` | JSON: `group_ids: number[]`、`verify_token` | `text/plain` 文件下载 |
+| POST | `/api/export/verify` | JSON: `password` | JSON, returns `verify_token` |
+| GET | `/api/groups/<group_id>/export` | Query: `verify_token` | `text/plain` file download |
+| GET | `/api/accounts/export` | Query: `verify_token` | `text/plain` file download |
+| POST | `/api/accounts/export-selected` | JSON: `group_ids: number[]`, `verify_token` | `text/plain` file download |
 
-二次验证请求示例：
+Example verification request:
 
 ```json
 {
@@ -455,7 +455,7 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-二次验证成功响应示例：
+Example success response:
 
 ```json
 {
@@ -464,83 +464,83 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-## 账号管理
+## Account Management
 
 ### GET `/api/accounts`
 
-获取账号列表。
+Get the account list.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `group_id` | int | 否 | 仅返回指定分组下的账号 |
+| `group_id` | int | No | Only return accounts in the specified group |
 
-#### 响应重点字段
+#### Key response fields
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `accounts` | 当前页账号列表 |
-| `total` | 当前查询条件下的账号总数 |
-| `limit` | 实际使用的单页条数 |
-| `offset` | 当前页偏移量 |
-| `has_more` | 是否还有下一页 |
-| `aliases` | 账号别名列表 |
-| `alias_count` | 别名数量 |
-| `forward_enabled` | 是否开启转发 |
-| `last_refresh_at` | 最近刷新时间 |
-| `last_refresh_status` | 最近刷新结果 |
-| `last_refresh_error` | 最近刷新错误 |
-| `tags` | 标签列表 |
+| `accounts` | Accounts in the current page |
+| `total` | Total number of accounts matching the query |
+| `limit` | Actual page size used |
+| `offset` | Current offset |
+| `has_more` | Whether another page exists |
+| `aliases` | Alias list |
+| `alias_count` | Number of aliases |
+| `forward_enabled` | Whether forwarding is enabled |
+| `last_refresh_at` | Most recent refresh time |
+| `last_refresh_status` | Most recent refresh result |
+| `last_refresh_error` | Most recent refresh error |
+| `tags` | Tag list |
 
 ### GET `/api/accounts/search`
 
-搜索账号。
+Search accounts.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `q` | string | 是 | 搜索关键词，支持主邮箱、备注、标签、别名邮箱 |
-| `limit` | int | 否 | 单页条数，最大 `10000` |
-| `offset` | int | 否 | 分页偏移量，默认 `0` |
-| `sort_by` | string | 否 | 排序字段，支持 `created_at`、`email`、`sort_order` |
-| `sort_order` | string | 否 | 排序方向，`asc` 或 `desc`，默认 `desc` |
-| `tag_ids` | string | 否 | 逗号分隔的标签 ID，仅搜索包含任一标签的账号 |
-| `include_untagged` | bool | 否 | 与 `tag_ids` 配合使用，是否包含未打标签账号 |
+| `q` | string | Yes | Search keyword, supports primary email, remark, tags, and alias email |
+| `limit` | int | No | Page size, max `10000` |
+| `offset` | int | No | Pagination offset, default `0` |
+| `sort_by` | string | No | Sort field, supports `created_at`, `email`, `sort_order` |
+| `sort_order` | string | No | Sort direction, `asc` or `desc`, default `desc` |
+| `tag_ids` | string | No | Comma-separated tag IDs; only accounts with any of these tags are returned |
+| `include_untagged` | bool | No | Used with `tag_ids` to include untagged accounts |
 
 ### POST `/api/accounts`
 
-批量导入账号。
+Bulk import accounts.
 
-#### 请求体
+#### Request body
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `account_string` | string | 是 | 多行账号文本 |
-| `group_id` | int | 否 | 目标分组，默认 `1` |
-| `account_format` | string | 否 | Outlook 导入格式：`client_id_refresh_token` 或 `refresh_token_client_id` |
-| `provider` | string | 否 | `outlook`、`auto`、`qq`、`163`、`126`、`yahoo`、`aliyun`、`custom` |
-| `imap_host` | string | 否 | `provider=custom` 时的 IMAP 服务器 |
-| `imap_port` | int | 否 | `provider=custom` 时的 IMAP 端口 |
-| `forward_enabled` | bool | 否 | 导入后是否默认启用转发 |
+| `account_string` | string | Yes | Multi-line account text |
+| `group_id` | int | No | Target group, default `1` |
+| `account_format` | string | No | Outlook import format: `client_id_refresh_token` or `refresh_token_client_id` |
+| `provider` | string | No | `outlook`, `auto`, `qq`, `163`, `126`, `yahoo`, `aliyun`, `custom` |
+| `imap_host` | string | No | IMAP server when `provider=custom` |
+| `imap_port` | int | No | IMAP port when `provider=custom` |
+| `forward_enabled` | bool | No | Whether forwarding is enabled after import |
 
-#### 响应重点字段
+#### Key response fields
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `added_count` | 本次新增账号数量 |
-| `skipped_count` | 因重复等原因跳过的账号数量 |
-| `invalid_count` | 格式无效的输入行数量 |
+| `added_count` | Number of newly added accounts |
+| `skipped_count` | Number of skipped accounts due to duplicates, etc. |
+| `invalid_count` | Number of invalid input lines |
 
-#### 导入格式
+#### Import formats
 
-- Outlook: 每行 `邮箱----密码----ClientID----RefreshToken`
-- Outlook 反序: 每行 `邮箱----密码----RefreshToken----ClientID`，并设置 `account_format=refresh_token_client_id`
-- 非 Outlook IMAP: 每行 `邮箱----IMAP密码`
-- 自定义 IMAP: 每行 `邮箱----IMAP密码----IMAP主机----IMAP端口`
+- Outlook: `email----password----ClientID----RefreshToken` per line
+- Outlook reverse order: `email----password----RefreshToken----ClientID`, with `account_format=refresh_token_client_id`
+- Non-Outlook IMAP: `email----IMAP password`
+- Custom IMAP: `email----IMAP password----IMAP host----IMAP port`
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -554,9 +554,9 @@ curl -H "X-API-Key: your-api-key" \
 
 ### GET `/api/accounts/<account_id>`
 
-获取单个账号详情。
+Get one account in detail.
 
-#### 响应补充字段
+#### Additional response fields
 
 ```json
 {
@@ -574,32 +574,32 @@ curl -H "X-API-Key: your-api-key" \
 
 ### PUT `/api/accounts/<account_id>`
 
-更新账号信息。
+Update account information.
 
-- 若请求体只有 `status`，则只更新账号状态
-- 支持 Outlook 账号和 IMAP 账号
-- 现在支持直接在更新账号时一起保存别名
+- If the request body contains only `status`, only the account status is updated
+- Supports both Outlook and IMAP accounts
+- Aliases can now be saved together with the account update
 
-#### 请求体常用字段
+#### Common request fields
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `email` | string | 是 | 邮箱地址 |
-| `password` | string | 否 | 账号密码，Outlook 可为空 |
-| `client_id` | string | Outlook 必填 | Outlook Client ID |
-| `refresh_token` | string | Outlook 必填 | Outlook Refresh Token |
-| `account_type` | string | 否 | `outlook` 或 `imap` |
-| `provider` | string | 否 | `outlook`、`auto`、`qq`、`163`、`126`、`yahoo`、`aliyun`、`custom` |
-| `imap_host` | string | 自定义 IMAP 必填 | 自定义 IMAP 服务器 |
-| `imap_port` | int | 否 | IMAP 端口 |
-| `imap_password` | string | IMAP 必填 | IMAP 密码 |
-| `group_id` | int | 否 | 分组 ID |
-| `remark` | string | 否 | 备注 |
-| `status` | string | 否 | `active` 等状态值 |
-| `forward_enabled` | bool | 否 | 是否开启转发 |
-| `aliases` | array<string> | 否 | 账号别名列表；若传入则按新列表整体替换 |
+| `email` | string | Yes | Mailbox address |
+| `password` | string | No | Account password, Outlook can be empty |
+| `client_id` | string | Required for Outlook | Outlook Client ID |
+| `refresh_token` | string | Required for Outlook | Outlook Refresh Token |
+| `account_type` | string | No | `outlook` or `imap` |
+| `provider` | string | No | `outlook`, `auto`, `qq`, `163`, `126`, `yahoo`, `aliyun`, `custom` |
+| `imap_host` | string | Required for custom IMAP | Custom IMAP server |
+| `imap_port` | int | No | IMAP port |
+| `imap_password` | string | Required for IMAP | IMAP password |
+| `group_id` | int | No | Group ID |
+| `remark` | string | No | Remark |
+| `status` | string | No | Status value such as `active` |
+| `forward_enabled` | bool | No | Whether forwarding is enabled |
+| `aliases` | array<string> | No | Alias list; if provided, it replaces the current list |
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -607,7 +607,7 @@ curl -H "X-API-Key: your-api-key" \
   "client_id": "xxx",
   "refresh_token": "xxx",
   "group_id": 1,
-  "remark": "主账号",
+  "remark": "Primary account",
   "status": "active",
   "forward_enabled": true,
   "aliases": [
@@ -619,9 +619,9 @@ curl -H "X-API-Key: your-api-key" \
 
 ### POST `/api/accounts/batch-update-group`
 
-批量修改账号分组。
+Bulk update account groups.
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -632,16 +632,16 @@ curl -H "X-API-Key: your-api-key" \
 
 ### POST `/api/accounts/batch-update-forwarding`
 
-批量开启或关闭账号转发。
+Bulk enable or disable account forwarding.
 
-#### 请求体
+#### Request body
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `account_ids` | array<int> | 是 | 账号 ID 列表 |
-| `forward_enabled` | bool | 是 | `true` 表示开启转发，`false` 表示关闭转发 |
+| `account_ids` | array<int> | Yes | List of account IDs |
+| `forward_enabled` | bool | Yes | `true` to enable forwarding, `false` to disable it |
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -650,24 +650,24 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 响应重点字段
+#### Key response fields
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `updated_count` | 实际状态发生变化的账号数量 |
-| `updated_accounts` | 被更新的账号列表 |
-| `unchanged_count` | 原本就处于目标状态的账号数量 |
-| `missing_ids` | 未命中的账号 ID |
+| `updated_count` | Number of accounts whose status changed |
+| `updated_accounts` | List of updated accounts |
+| `unchanged_count` | Number of accounts already in the target state |
+| `missing_ids` | Missing account IDs |
 
 ### GET `/api/accounts/<account_id>/aliases`
 
-获取某个账号的别名列表。
+Get the alias list for one account.
 
 ### PUT `/api/accounts/<account_id>/aliases`
 
-整体替换某个账号的别名列表。
+Replace the alias list for one account.
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -680,17 +680,17 @@ curl -H "X-API-Key: your-api-key" \
 
 ### DELETE `/api/accounts/<account_id>`
 
-按账号 ID 删除账号。
+Delete an account by ID.
 
 ### DELETE `/api/accounts/email/<email_addr>`
 
-按邮箱地址删除账号。
+Delete an account by email address.
 
 ### POST `/api/accounts/batch-delete`
 
-批量删除账号。
+Bulk delete accounts.
 
-#### 请求体
+#### Request body
 
 ```json
 {
@@ -698,25 +698,25 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 响应重点字段
+#### Key response fields
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `deleted_count` | 实际删除数量 |
-| `deleted_accounts` | 已删除账号列表 |
-| `missing_ids` | 请求中存在但未命中的账号 ID |
+| `deleted_count` | Number actually deleted |
+| `deleted_accounts` | List of deleted accounts |
+| `missing_ids` | Account IDs that were requested but not found |
 
-## 标签管理
+## Tag Management
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| GET | `/api/tags` | 无 | 获取所有标签 |
-| POST | `/api/tags` | JSON: `name`、`color?` | 创建标签 |
-| DELETE | `/api/tags/<tag_id>` | 路径参数 `tag_id` | 删除标签 |
-| POST | `/api/accounts/tags` | JSON: `account_ids`、`tag_id`、`action` | 批量给账号加标签或移除标签 |
-| POST | `/api/temp-emails/tags` | JSON: `temp_email_ids`、`tag_id`、`action` | 批量给临时邮箱加标签或移除标签 |
+| GET | `/api/tags` | None | Get all tags |
+| POST | `/api/tags` | JSON: `name`, `color?` | Create a tag |
+| DELETE | `/api/tags/<tag_id>` | Path param `tag_id` | Delete a tag |
+| POST | `/api/accounts/tags` | JSON: `account_ids`, `tag_id`, `action` | Bulk add/remove tags on accounts |
+| POST | `/api/temp-emails/tags` | JSON: `temp_email_ids`, `tag_id`, `action` | Bulk add/remove tags on temporary mailboxes |
 
-批量标签管理请求示例：
+Bulk account tag example:
 
 ```json
 {
@@ -726,7 +726,7 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-临时邮箱批量标签请求示例：
+Temporary mailbox tag example:
 
 ```json
 {
@@ -736,25 +736,25 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-## 项目管理
+## Project Management
 
-项目接口用于按 `project_key` 管理“邮箱在某个项目下的独立状态”。
+Project APIs manage the independent status of a mailbox within a project by `project_key`.
 
-- 同一个邮箱可以同时存在于多个项目中
-- 项目内状态独立维护，互不影响
-- 当前项目状态包括：
-  - `toClaim`：可领取
-  - `claiming`：领取中
-  - `done`：已成功消费，不再自动分配
-  - `failed`：最近一次消费失败，需人工重置后才可再次分配
-  - `removed`：人工移出项目范围
-  - `deleted`：系统主表里的账号已删除，但项目历史仍保留
+- The same mailbox can exist in multiple projects at once
+- Project status is tracked independently and does not affect other projects
+- Current statuses are:
+  - `toClaim`: claimable
+  - `claiming`: being claimed
+  - `done`: successfully consumed and no longer assigned automatically
+  - `failed`: most recent attempt failed; manual reset is required before re-assignment
+  - `removed`: manually removed from the project scope
+  - `deleted`: the account was deleted from the system master table, but project history is preserved
 
 ### GET `/api/projects`
 
-获取项目列表。
+Get the project list.
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
@@ -763,9 +763,9 @@ curl -H "X-API-Key: your-api-key" \
     "projects": [
       {
         "id": 1,
-        "name": "GPT 注册",
+        "name": "GPT Registration",
         "project_key": "gpt",
-        "description": "GPT 注册项目",
+        "description": "GPT registration project",
         "scope_mode": "groups",
         "use_alias_email": false,
         "status": "active",
@@ -788,71 +788,71 @@ curl -H "X-API-Key: your-api-key" \
 
 ### GET `/api/projects/<project_key>`
 
-获取单个项目详情。
+Get one project in detail.
 
 ### POST `/api/projects/start`
 
-启动项目。
+Start a project.
 
-这个接口合并了“创建项目”和“补全项目范围”两种语义：
+This endpoint combines project creation and scope completion:
 
-- 如果 `project_key` 不存在：
-  - 创建新项目
-  - 保存项目范围
-  - 把范围内邮箱补入项目
-- 如果 `project_key` 已存在：
-  - 视为再次启动同一项目
-  - 默认沿用原有范围
-  - 如果本次显式传了 `group_ids`，会更新范围后再补全
-  - 只补新增邮箱，不会重置已有项目状态
+- If `project_key` does not exist:
+  - Create the project
+  - Save the scope
+  - Add scoped mailboxes to the project
+- If `project_key` already exists:
+  - Treat it as starting the same project again
+  - Reuse the current scope by default
+  - If `group_ids` is explicitly provided in this request, update the scope and then complete it
+  - Only add new mailboxes; do not reset existing status
 
-删除补偿规则：
+Deletion compensation rules:
 
-- 启动项目时会检查项目历史中已失联的账号
-- 若项目记录对应的账号已从 `accounts` 主表删除，则该项目记录会标为 `deleted`
-- 若同一个邮箱地址后来被重新导入系统，启动项目时会按邮箱地址复用旧项目记录，而不是把它当成全新邮箱
+- When starting a project, the system checks project history for missing accounts
+- If the corresponding account no longer exists in `accounts`, that project record is marked `deleted`
+- If the same email is imported again later, the project startup logic reuses the old project record by email address instead of treating it as a completely new mailbox
 
-别名邮箱规则：
+Alias mailbox rules:
 
-- `use_alias_email=false` 时，项目按主邮箱地址入池
-- `use_alias_email=true` 时，优先按账号别名邮箱入池
-- 若某个账号没有配置别名，则在 `use_alias_email=true` 时仍会回退使用主邮箱地址
-- 再次启动已存在项目时，如果不显式传 `use_alias_email`，会沿用当前项目配置
+- When `use_alias_email=false`, the project uses the primary email address for pooling
+- When `use_alias_email=true`, alias addresses are preferred for pooling
+- If an account has no aliases, the primary email is still used as a fallback even when `use_alias_email=true`
+- When restarting an existing project, if `use_alias_email` is not explicitly provided, the current project configuration is kept
 
-#### 请求体
+#### Request body
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `project_key` | string | 是 | 项目标识，内部会转成小写并去掉首尾空格 |
-| `name` | string | 否 | 项目名称。首次创建时不传则默认使用 `project_key` |
-| `description` | string | 否 | 项目描述 |
-| `group_ids` | array<int> | 否 | 项目范围分组列表；不传时首次创建默认为全量邮箱范围 |
-| `use_alias_email` | bool | 否 | 是否优先把别名邮箱加入项目；默认 `false` |
+| `project_key` | string | Yes | Project identifier, trimmed and converted to lowercase internally |
+| `name` | string | No | Project name; if omitted on first creation, defaults to `project_key` |
+| `description` | string | No | Project description |
+| `group_ids` | array<int> | No | Scope groups; if omitted, first creation defaults to all mailboxes |
+| `use_alias_email` | bool | No | Whether alias mailboxes should be pooled first; defaults to `false` |
 
-#### 请求示例
+#### Request examples
 
-首次创建分组范围项目：
+Create a scoped project:
 
 ```json
 {
   "project_key": "gpt",
-  "name": "GPT 注册",
-  "description": "GPT 注册项目",
+  "name": "GPT Registration",
+  "description": "GPT registration project",
   "group_ids": [1, 2],
   "use_alias_email": true
 }
 ```
 
-首次创建全量范围项目：
+Create a full-scope project:
 
 ```json
 {
   "project_key": "google",
-  "name": "Google 注册"
+  "name": "Google Registration"
 }
 ```
 
-再次启动已有项目：
+Start an existing project again:
 
 ```json
 {
@@ -860,17 +860,17 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
   "success": true,
-  "message": "项目已启动",
+  "message": "Project started",
   "data": {
     "id": 1,
-    "name": "GPT 注册",
+    "name": "GPT Registration",
     "project_key": "gpt",
-    "description": "GPT 注册项目",
+    "description": "GPT registration project",
     "scope_mode": "groups",
     "use_alias_email": true,
     "status": "active",
@@ -888,29 +888,29 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 返回重点字段
+#### Key response fields
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `created` | 本次是否首次创建该项目 |
-| `added_count` | 本次启动新补入的邮箱数量 |
-| `deleted_count` | 本次启动过程中被标记为 `deleted` 的项目邮箱数量 |
-| `use_alias_email` | 当前项目是否按别名邮箱入池 |
+| `created` | Whether this was the first creation of the project |
+| `added_count` | Number of newly added mailboxes during this start |
+| `deleted_count` | Number of project mailboxes marked as `deleted` during this run |
+| `use_alias_email` | Whether the project currently pools alias mailboxes |
 
 ### GET `/api/projects/<project_key>/accounts`
 
-获取某个项目下的邮箱列表。
+Get the mailbox list for one project.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `status` | string | 否 | 按项目状态过滤，如 `toClaim`、`failed`、`done` |
-| `group_id` | int | 否 | 按当前分组或项目来源分组过滤 |
-| `provider` | string | 否 | 按邮箱 provider 过滤 |
-| `keyword` | string | 否 | 在邮箱地址、备注里做模糊搜索 |
+| `status` | string | No | Filter by project status such as `toClaim`, `failed`, `done` |
+| `group_id` | int | No | Filter by current group or source group |
+| `provider` | string | No | Filter by mailbox provider |
+| `keyword` | string | No | Fuzzy search over mailbox address and remark |
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
@@ -918,9 +918,9 @@ curl -H "X-API-Key: your-api-key" \
   "data": {
       "project": {
         "id": 1,
-        "name": "GPT 注册",
+        "name": "GPT Registration",
         "project_key": "gpt",
-        "description": "GPT 注册项目",
+        "description": "GPT registration project",
         "scope_mode": "groups",
         "use_alias_email": true,
         "status": "active",
@@ -943,7 +943,7 @@ curl -H "X-API-Key: your-api-key" \
         "provider": "outlook",
         "account_type": "outlook",
         "group_id": 1,
-        "group_name": "默认分组",
+        "group_name": "Default Group",
         "remark": "",
         "project_status": "failed",
         "account_status": "active",
@@ -968,19 +968,19 @@ curl -H "X-API-Key: your-api-key" \
 
 ### POST `/api/projects/<project_key>/claim-random`
 
-从项目里随机领取一个可用邮箱。
+Randomly claim one available mailbox from the project.
 
-当前实现会从项目内 `status='toClaim'` 的邮箱中选取一个，并确保该邮箱没有被其他项目中的 `claiming` 记录占用。
+The current implementation picks one mailbox with `status='toClaim'` inside the project and makes sure the mailbox is not already occupied by a `claiming` record in another project.
 
-#### 请求体
+#### Request body
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `caller_id` | string | 是 | 调用方标识 |
-| `task_id` | string | 是 | 当前任务标识 |
-| `lease_seconds` | int | 否 | 租期秒数，默认 `600`，最大 `3600` |
+| `caller_id` | string | Yes | Caller identifier |
+| `task_id` | string | Yes | Current task identifier |
+| `lease_seconds` | int | No | Lease time in seconds, default `600`, max `3600` |
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -990,7 +990,7 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-#### 成功响应示例
+#### Success example
 
 ```json
 {
@@ -1012,38 +1012,38 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-无可领取邮箱时，当前实现返回：
+If no mailbox is available, the current implementation returns:
 
 ```json
 {
   "success": false,
-  "error": "没有可领取的项目邮箱"
+  "error": "No claimable project mailboxes are available"
 }
 ```
 
 ### POST `/api/projects/<project_key>/complete-success`
 
-把当前领取中的项目邮箱标记为成功。
+Mark the currently claimed project mailbox as successful.
 
-#### 请求体
+#### Request body
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `account_id` | int | 是 | 账号 ID |
-| `claim_token` | string | 是 | 领取时返回的 token |
-| `caller_id` | string | 否 | 调用方标识 |
-| `task_id` | string | 否 | 任务标识 |
-| `detail` | string | 否 | 成功说明 |
+| `account_id` | int | Yes | Account ID |
+| `claim_token` | string | Yes | Token returned at claim time |
+| `caller_id` | string | No | Caller identifier |
+| `task_id` | string | No | Task identifier |
+| `detail` | string | No | Success note |
 
 ### POST `/api/projects/<project_key>/complete-failed`
 
-把当前领取中的项目邮箱标记为失败。
+Mark the currently claimed project mailbox as failed.
 
-- 状态会从 `claiming` 变成 `failed`
-- `failed` 不会自动再次参与分配
-- 需要人工调用 `/reset-failed` 后才能再次领取
+- Status changes from `claiming` to `failed`
+- `failed` will not re-enter assignment automatically
+- It must be manually reset through `/reset-failed` before it can be claimed again
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -1057,78 +1057,78 @@ curl -H "X-API-Key: your-api-key" \
 
 ### POST `/api/projects/<project_key>/release`
 
-主动释放领取中的项目邮箱。
+Manually release the mailbox currently in `claiming`.
 
-- 状态会从 `claiming` 回到 `toClaim`
-- 适合任务中断、主动放弃等场景
+- Status returns from `claiming` to `toClaim`
+- Suitable for task interruption or voluntary abandonment
 
 ### POST `/api/projects/<project_key>/reset-failed`
 
-人工把 `failed` 邮箱重置回 `toClaim`。
+Manually reset a `failed` mailbox back to `toClaim`.
 
-#### 请求示例
+#### Request example
 
 ```json
 {
   "account_id": 12,
-  "detail": "人工允许重试"
+  "detail": "Manual retry allowed"
 }
 ```
 
 ### POST `/api/projects/<project_key>/remove-account`
 
-人工把项目邮箱移出项目范围。
+Manually remove a project mailbox from the project.
 
-- 目标状态变成 `removed`
-- 若当前状态是 `claiming`，会拒绝移出
+- The target status becomes `removed`
+- If the current status is `claiming`, removal is rejected
 
-#### 请求示例
+#### Request example
 
 ```json
 {
   "account_id": 12,
-  "detail": "人工移出项目"
+  "detail": "Removed from project manually"
 }
 ```
 
 ### POST `/api/projects/<project_key>/restore-account`
 
-人工把 `removed` 项目邮箱恢复回 `toClaim`。
+Manually restore a `removed` project mailbox back to `toClaim`.
 
-#### 请求示例
+#### Request example
 
 ```json
 {
   "account_id": 12,
-  "detail": "人工恢复到项目"
+  "detail": "Restored to the project manually"
 }
 ```
 
-## 刷新与转发运维
+## Refresh and Forwarding Operations
 
-### Token 刷新
+### Token Refresh
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| POST | `/api/accounts/<account_id>/refresh` | 路径参数 `account_id` | 刷新单个 Outlook 账号 Token |
-| POST | `/api/accounts/refresh-selected` | JSON: `account_ids: number[]` | 刷新选中的 Outlook 账号，自动跳过 IMAP 或不存在的账号 |
-| POST | `/api/accounts/refresh-selected-stream` | JSON: `account_ids: number[]` | 初始化选中账号流式刷新任务，返回 `task_id` 和 `stream_url` |
-| GET | `/api/accounts/refresh-selected-stream/<task_id>` | 路径参数 `task_id` | 订阅选中账号流式刷新任务，返回 `text/event-stream` |
-| GET | `/api/accounts/refresh-all` | 无 | 刷新全部 Outlook 账号，返回 `text/event-stream` |
-| POST | `/api/accounts/<account_id>/retry-refresh` | 路径参数 `account_id` | 重试单个失败账号刷新 |
-| GET | `/api/accounts/refresh-failed-stream` | 无 | 流式重试当前失败账号，返回 `text/event-stream` |
-| POST | `/api/accounts/refresh-failed` | 无 | 重试最近一次刷新失败的账号 |
-| GET | `/api/accounts/trigger-scheduled-refresh` | Query: `force=true/false` | 手动触发一次“定时刷新”逻辑，返回 `text/event-stream` |
-| POST | `/api/accounts/stop-full-refresh` | 无 | 请求停止当前全量刷新任务 |
+| POST | `/api/accounts/<account_id>/refresh` | Path param `account_id` | Refresh one Outlook account token |
+| POST | `/api/accounts/refresh-selected` | JSON: `account_ids: number[]` | Refresh selected Outlook accounts and skip IMAP or missing accounts |
+| POST | `/api/accounts/refresh-selected-stream` | JSON: `account_ids: number[]` | Initialize a stream refresh task for selected accounts and return `task_id` and `stream_url` |
+| GET | `/api/accounts/refresh-selected-stream/<task_id>` | Path param `task_id` | Subscribe to the selected-account stream refresh task as `text/event-stream` |
+| GET | `/api/accounts/refresh-all` | None | Refresh all Outlook accounts and return `text/event-stream` |
+| POST | `/api/accounts/<account_id>/retry-refresh` | Path param `account_id` | Retry one failed refresh |
+| GET | `/api/accounts/refresh-failed-stream` | None | Stream retry for currently failed accounts as `text/event-stream` |
+| POST | `/api/accounts/refresh-failed` | None | Retry the accounts that failed last time |
+| GET | `/api/accounts/trigger-scheduled-refresh` | Query: `force=true/false` | Manually trigger scheduled refresh and return `text/event-stream` |
+| POST | `/api/accounts/stop-full-refresh` | None | Request cancellation of the current full refresh task |
 
-`/api/accounts/refresh-all`、`/api/accounts/refresh-failed-stream`、`/api/accounts/refresh-selected-stream/<task_id>`、`/api/accounts/trigger-scheduled-refresh` 都会返回 SSE 事件流，常见事件类型包括：
+`/api/accounts/refresh-all`, `/api/accounts/refresh-failed-stream`, `/api/accounts/refresh-selected-stream/<task_id>`, and `/api/accounts/trigger-scheduled-refresh` all return SSE event streams. Common event types include:
 
 - `start`
 - `progress`
 - `delay`
 - `complete`
 
-选中账号流式刷新需先初始化任务：
+Selected-account stream refresh must be initialized first:
 
 ```json
 {
@@ -1136,7 +1136,7 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-`POST /api/accounts/refresh-selected-stream` 成功时返回：
+`POST /api/accounts/refresh-selected-stream` returns:
 
 ```json
 {
@@ -1146,27 +1146,27 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-随后使用 `EventSource` 订阅 `stream_url`。该任务使用进程内短期状态保存，服务部署需保持单 worker；如果任务不存在或已过期，SSE 会返回 `type=error` 事件。
+Then subscribe to `stream_url` using `EventSource`. This task uses short-lived in-process state, so deployment must stay on a single worker. If the task is missing or expired, SSE returns a `type=error` event.
 
-`POST /api/accounts/stop-full-refresh` 成功时返回：
+`POST /api/accounts/stop-full-refresh` returns:
 
 ```json
 {
   "success": true,
-  "message": "已请求停止当前全量刷新任务"
+  "message": "Cancellation requested for the current full refresh task"
 }
 ```
 
-若当前没有进行中的全量刷新任务，会返回 HTTP `409`：
+If there is no running full refresh task, it returns HTTP `409`:
 
 ```json
 {
   "success": false,
-  "message": "当前没有进行中的全量刷新任务"
+  "message": "There is no full refresh task running right now"
 }
 ```
 
-`POST /api/accounts/refresh-selected` 请求示例：
+`POST /api/accounts/refresh-selected` request example:
 
 ```json
 {
@@ -1174,7 +1174,7 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-该接口会返回：
+This endpoint returns:
 
 - `requested_count`
 - `processed_count`
@@ -1184,36 +1184,36 @@ curl -H "X-API-Key: your-api-key" \
 - `failed_list`
 - `skipped_list`
 
-### 刷新日志与统计
+### Refresh Logs and Statistics
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| GET | `/api/accounts/refresh-logs` | Query: `limit`、`offset` | 获取所有刷新日志 |
-| GET | `/api/accounts/<account_id>/refresh-logs` | Query: `limit`、`offset` | 获取单个账号刷新日志 |
-| GET | `/api/accounts/refresh-logs/failed` | 无 | 获取当前失败状态邮箱快照 |
-| GET | `/api/accounts/refresh-stats` | 无 | 获取当前刷新统计快照 |
-| GET | `/api/accounts/refresh-status-list` | Query: `q`、`status`、`page`、`page_size` | 获取 Token 刷新管理邮箱列表 |
+| GET | `/api/accounts/refresh-logs` | Query: `limit`, `offset` | Get all refresh logs |
+| GET | `/api/accounts/<account_id>/refresh-logs` | Query: `limit`, `offset` | Get refresh logs for one account |
+| GET | `/api/accounts/refresh-logs/failed` | None | Get the current failed-account snapshot |
+| GET | `/api/accounts/refresh-stats` | None | Get the current refresh statistics snapshot |
+| GET | `/api/accounts/refresh-status-list` | Query: `q`, `status`, `page`, `page_size` | Get the mailbox list for the refresh management page |
 
-`GET /api/accounts/refresh-logs/failed` 返回的是“当前仍处于失败状态的邮箱快照”，不再是历史失败日志列表。
+`GET /api/accounts/refresh-logs/failed` returns the snapshot of mailboxes that are still in a failed state, not a historical failure log list.
 
-`GET /api/accounts/refresh-status-list` 查询参数：
+`GET /api/accounts/refresh-status-list` query parameters:
 
 - `q`
 - `status=all|success|failed|never`
 - `page`
 - `page_size`
 
-### 转发日志与触发
+### Forwarding Logs and Triggers
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| GET | `/api/accounts/forwarding-logs` | Query: `limit`、`offset` | 获取最近转发记录 |
-| GET | `/api/accounts/forwarding-logs/failed` | Query: `limit` | 获取最近失败转发记录 |
-| GET | `/api/accounts/<account_id>/forwarding-logs` | Query: `limit`、`offset`、`failed_only` | 获取单个账号转发记录 |
-| POST | `/api/accounts/trigger-forwarding-check` | 无 | 立即触发一次转发检查 |
-| POST | `/api/accounts/<account_id>/forwarding/reset-cursor` | JSON: `mode?`、`lookback_minutes?`、`trigger_check?` | 回退或清空单个账号的转发游标，并可选立即触发一次重扫 |
+| GET | `/api/accounts/forwarding-logs` | Query: `limit`, `offset` | Get recent forwarding records |
+| GET | `/api/accounts/forwarding-logs/failed` | Query: `limit` | Get recent failed forwarding records |
+| GET | `/api/accounts/<account_id>/forwarding-logs` | Query: `limit`, `offset`, `failed_only` | Get forwarding records for one account |
+| POST | `/api/accounts/trigger-forwarding-check` | None | Trigger a forwarding check immediately |
+| POST | `/api/accounts/<account_id>/forwarding/reset-cursor` | JSON: `mode?`, `lookback_minutes?`, `trigger_check?` | Rewind or clear one account's forwarding cursor and optionally trigger a rescan |
 
-`POST /api/accounts/<account_id>/forwarding/reset-cursor` 请求示例：
+`POST /api/accounts/<account_id>/forwarding/reset-cursor` request example:
 
 ```json
 {
@@ -1223,137 +1223,137 @@ curl -H "X-API-Key: your-api-key" \
 }
 ```
 
-字段说明：
+Field meanings:
 
-- `mode=window`：按回看窗口重置游标
-- `mode=clear`：清空游标
-- `lookback_minutes`：回看分钟数，未传时按系统窗口逻辑处理
-- `trigger_check`：是否在重置后立即触发一次转发检查，默认 `true`
+- `mode=window`: reset using a lookback window
+- `mode=clear`: clear the cursor
+- `lookback_minutes`: lookback in minutes; if omitted, use the system window logic
+- `trigger_check`: whether to trigger one forwarding check immediately after resetting, default `true`
 
-## 邮件接口
+## Mail Endpoints
 
 ### GET `/api/emails/<email_addr>`
 
-内部邮件列表接口。支持主邮箱或别名邮箱；若邮箱包含 `+`，会先按完整地址匹配，未命中时再按本地部分从右到左逐级去掉 `+suffix` 回退匹配，兼容主邮箱和别名邮箱。
+Internal mail list endpoint. It supports the primary email and aliases. If the email contains `+`, the full address is matched first, then the local part is progressively trimmed from right to left by `+suffix` for fallback matching.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `folder` | string | 否 | `inbox`、`junkemail`、`deleteditems`、`all` |
-| `skip` | int | 否 | 分页偏移，默认 `0` |
-| `top` | int | 否 | 返回数量，默认 `20` |
-| `subject_contains` | string | 否 | 仅保留主题中包含该关键字的邮件，读取时保留 `+` 字符 |
-| `from_contains` | string | 否 | 仅保留发件人中包含该关键字的邮件，读取时保留 `+` 字符 |
-| `keyword` | string | 否 | 在主题、预览、正文中做进一步关键字过滤，读取时保留 `+` 字符 |
+| `folder` | string | No | `inbox`, `junkemail`, `deleteditems`, `all` |
+| `skip` | int | No | Pagination offset, default `0` |
+| `top` | int | No | Number of results, default `20` |
+| `subject_contains` | string | No | Keep only emails whose subject contains the keyword; `+` is preserved when read |
+| `from_contains` | string | No | Keep only emails whose sender contains the keyword; `+` is preserved when read |
+| `keyword` | string | No | Further keyword filtering across subject, preview, and body; `+` is preserved when read |
 
-当 `folder=all` 时，行为与对外 API 一致：同时抓取 `inbox` 与 `junkemail`，按时间合并排序。
+When `folder=all`, behavior matches the external API: inbox and junk mail are fetched together and merged by time.
 
-成功响应会额外包含 `requested_email`、`resolved_email`；当请求邮箱命中别名时，还会包含 `matched_alias`。
+Successful responses also include `requested_email` and `resolved_email`; when the request matches an alias, `matched_alias` is also included.
 
-#### 列表项字段
+#### Item fields
 
-`emails` 数组中的每个对象至少包含以下字段：
+Each object in `emails` contains at least the following:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `id` | string | 邮件 ID |
-| `subject` | string | 邮件主题 |
-| `from` | string | 发件人地址 |
-| `to` | string | 收件人地址，多个地址用 `, ` 拼接 |
-| `date` | string | 收件时间 |
-| `is_read` | bool | 是否已读 |
-| `has_attachments` | bool | 是否有附件 |
-| `body_preview` | string | 邮件预览 |
-| `folder` | string | 所属文件夹 |
+| `id` | string | Mail ID |
+| `subject` | string | Subject |
+| `from` | string | Sender address |
+| `to` | string | Recipient address, joined with `, ` |
+| `date` | string | Received time |
+| `is_read` | bool | Whether it is read |
+| `has_attachments` | bool | Whether attachments exist |
+| `body_preview` | string | Preview text |
+| `folder` | string | Folder name |
 
 ### GET `/api/email/<email_addr>/<message_id>`
 
-获取单封邮件详情。`email` 参数同样支持传主邮箱或别名邮箱。
+Get one mail in detail. The `email` parameter can also be the primary email or an alias.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `folder` | string | 否 | 当前邮件所在文件夹，默认 `inbox` |
-| `method` | string | 否 | 优先取详情的方式，常见为 `graph` |
+| `folder` | string | No | Current folder, default `inbox` |
+| `method` | string | No | Preferred detail method, usually `graph` |
 
-#### 返回字段
+#### Response fields
 
-`email` 对象至少包含以下字段：
+The `email` object includes at least:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `id` | string | 邮件 ID |
-| `subject` | string | 邮件主题 |
-| `from` | string | 发件人 |
-| `to` | string | 收件人，多个地址用 `, ` 拼接 |
-| `cc` | string | 抄送，可能为空 |
-| `date` | string | 收件时间 |
-| `body` | string | 邮件正文 |
-| `body_type` | string | `html` 或 `text` |
-| `attachments` | array<object> | 附件列表 |
+| `id` | string | Mail ID |
+| `subject` | string | Subject |
+| `from` | string | Sender |
+| `to` | string | Recipients, joined with `, ` |
+| `cc` | string | CC, may be empty |
+| `date` | string | Received time |
+| `body` | string | Mail body |
+| `body_type` | string | `html` or `text` |
+| `attachments` | array<object> | Attachment list |
 
-`attachments` 中每个对象包含：
+Each object in `attachments` includes:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `id` | string | 附件 ID，下载附件时使用 |
-| `name` | string | 附件文件名 |
-| `content_type` | string | MIME 类型 |
-| `size` | int | 附件大小，单位字节 |
-| `is_inline` | bool | 是否为内联附件 |
-| `content_id` | string | 内联附件的 Content-ID，没有时为空 |
+| `id` | string | Attachment ID used for downloads |
+| `name` | string | File name |
+| `content_type` | string | MIME type |
+| `size` | int | Attachment size in bytes |
+| `is_inline` | bool | Whether the attachment is inline |
+| `content_id` | string | Inline Content-ID, empty if absent |
 
 ### GET `/api/email/<email_addr>/<message_id>/attachments/<attachment_id>`
 
-下载单个邮件附件。返回文件流，并带 `Content-Disposition: attachment` 响应头。
+Download a single attachment. Returns a file stream with `Content-Disposition: attachment`.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `folder` | string | 否 | 当前邮件所在文件夹，默认 `inbox` |
-| `method` | string | 否 | Outlook 账号优先使用 `graph`，传 `imap` 时走 IMAP 下载 |
+| `folder` | string | No | Current folder, default `inbox` |
+| `method` | string | No | Outlook accounts prefer `graph`; if `imap` is passed, use IMAP download |
 
 ### GET `/api/email/<email_addr>/<message_id>/attachments/download-all`
 
-打包下载当前邮件的全部附件。返回 `application/zip` 文件流，下载文件名为 `attachments.zip`。
+Download all attachments in one ZIP file. Returns `application/zip` and names the file `attachments.zip`.
 
-ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自动追加序号避免覆盖。
+ZIP entries use the original attachment names. If multiple attachments share the same name, a numeric suffix is added automatically.
 
-#### 查询参数
+#### Query parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `folder` | string | 否 | 当前邮件所在文件夹，默认 `inbox` |
-| `method` | string | 否 | Outlook 账号优先使用 `graph`，传 `imap` 时走 IMAP 下载 |
+| `folder` | string | No | Current folder, default `inbox` |
+| `method` | string | No | Outlook accounts prefer `graph`; if `imap` is passed, use IMAP download |
 
 ### POST `/api/emails/mark-read`
 
-批量标记邮件为已读。
+Bulk mark emails as read.
 
-#### 请求体
+#### Request body
 
-| 字段 | 类型 | 必填 | 说明 |
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `email` | string | 是 | 主邮箱或别名邮箱 |
-| `method` | string | 否 | 默认 `graph`，可传 `imap` |
-| `folder` | string | 否 | 默认文件夹，默认 `inbox` |
-| `ids` | array<string> | 条件必填 | 简写模式，直接传邮件 ID 数组 |
-| `items` | array<object> | 条件必填 | 完整模式，可为每封邮件单独指定文件夹和 ID 模式 |
+| `email` | string | Yes | Primary or alias email |
+| `method` | string | No | Defaults to `graph`, `imap` is also allowed |
+| `folder` | string | No | Default folder, default `inbox` |
+| `ids` | array<string> | Conditionally required | Short form: directly pass mail IDs |
+| `items` | array<object> | Conditionally required | Full form: specify folder and ID mode per mail |
 
-`items` 模式下每项支持：
+In `items` mode, each item supports:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `id` / `message_id` | string | 邮件 ID |
-| `folder` | string | `inbox`、`junkemail`、`deleteditems`、`all` |
-| `id_mode` | string | `graph`、`uid`、`sequence` |
+| `id` / `message_id` | string | Mail ID |
+| `folder` | string | `inbox`, `junkemail`, `deleteditems`, `all` |
+| `id_mode` | string | `graph`, `uid`, `sequence` |
 
-#### 请求示例
+#### Request examples
 
-简写模式：
+Short form:
 
 ```json
 {
@@ -1363,7 +1363,7 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 }
 ```
 
-完整模式：
+Full form:
 
 ```json
 {
@@ -1384,22 +1384,22 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 }
 ```
 
-#### 响应重点字段
+#### Key response fields
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `success` | 只有全部成功才为 `true` |
-| `success_count` | 成功标记为已读的邮件数量 |
-| `failed_count` | 失败数量 |
-| `updated_ids` | 已成功更新的邮件 ID 列表 |
-| `errors` | 失败详情列表 |
-| `error` | 第一条失败信息，兼容旧前端逻辑 |
+| `success` | `true` only if all items succeed |
+| `success_count` | Number of emails marked as read successfully |
+| `failed_count` | Number of failures |
+| `updated_ids` | List of IDs updated successfully |
+| `errors` | List of failure details |
+| `error` | First failure message, for compatibility with older frontend logic |
 
 ### POST `/api/emails/delete`
 
-批量删除邮件。
+Bulk delete emails.
 
-#### 请求体
+#### Request body
 
 ```json
 {
@@ -1408,42 +1408,42 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 }
 ```
 
-说明：
+Notes:
 
-- Outlook 账号会优先走 Graph API，失败后按逻辑回退 IMAP
-- IMAP 账号当前不支持批量删除
+- Outlook accounts try Graph API first, then fall back to IMAP if needed
+- IMAP accounts currently do not support bulk delete
 
-## 临时邮箱
+## Temporary Mailboxes
 
-### 列表、导入、渠道域名
+### List, Import, Domain Sources
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| GET | `/api/temp-emails` | 无 | 获取所有临时邮箱，列表项包含 `tags` 字段 |
-| POST | `/api/temp-emails/import` | JSON: `account_string`、`provider` | 批量导入临时邮箱 |
-| POST | `/api/temp-emails/batch-delete` | JSON: `temp_email_ids` | 批量删除临时邮箱 |
-| GET | `/api/duckmail/domains` | 无 | 获取 DuckMail 可用域名 |
-| GET | `/api/cloudflare/domains` | 无 | 获取 Cloudflare 可用域名 |
+| GET | `/api/temp-emails` | None | Get all temporary mailboxes; each item includes `tags` |
+| POST | `/api/temp-emails/import` | JSON: `account_string`, `provider` | Bulk import temporary mailboxes |
+| POST | `/api/temp-emails/batch-delete` | JSON: `temp_email_ids` | Bulk delete temporary mailboxes |
+| GET | `/api/duckmail/domains` | None | Get available DuckMail domains |
+| GET | `/api/cloudflare/domains` | None | Get available Cloudflare domains |
 
-`/api/temp-emails/import` 的导入格式：
+Import formats for `/api/temp-emails/import`:
 
-- `provider=gptmail`: 每行一个邮箱
-- `provider=duckmail`: 每行 `邮箱----密码`
-- `provider=cloudflare`: 每行 `邮箱----JWT`
+- `provider=gptmail`: one email per line
+- `provider=duckmail`: `email----password` per line
+- `provider=cloudflare`: `email----JWT` per line
 
 ### POST `/api/temp-emails/generate`
 
-生成新的临时邮箱。
+Generate a new temporary mailbox.
 
-#### 请求体
+#### Request body
 
-| provider | 需要字段 | 说明 |
+| Provider | Required fields | Description |
 | --- | --- | --- |
-| `gptmail` | `prefix?`、`domain?` | 不传则走默认随机生成 |
-| `duckmail` | `domain`、`username`、`password` | 用户名至少 3 位，密码至少 6 位 |
-| `cloudflare` | `domain?`、`username?` | `username` 可留空随机生成 |
+| `gptmail` | `prefix?`, `domain?` | Uses default random generation when omitted |
+| `duckmail` | `domain`, `username`, `password` | Username must be at least 3 chars, password at least 6 chars |
+| `cloudflare` | `domain?`, `username?` | `username` can be empty and will be generated randomly |
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -1454,27 +1454,27 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 }
 ```
 
-### 临时邮箱邮件接口
+### Temporary Mailbox Message Endpoints
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| DELETE | `/api/temp-emails/<email_addr>` | 路径参数 `email_addr` | 删除临时邮箱 |
-| GET | `/api/temp-emails/<email_addr>/messages` | 路径参数 `email_addr` | 获取临时邮箱邮件列表 |
-| GET | `/api/temp-emails/<email_addr>/messages/<message_id>` | 路径参数 | 获取临时邮件详情 |
-| DELETE | `/api/temp-emails/<email_addr>/messages/<message_id>` | 路径参数 | 当前返回“单封删信功能已暂时关闭” |
-| DELETE | `/api/temp-emails/<email_addr>/clear` | 路径参数 | 当前返回“清空功能已暂时关闭” |
-| POST | `/api/temp-emails/<email_addr>/refresh` | 路径参数 | 主动刷新一次临时邮箱邮件 |
+| DELETE | `/api/temp-emails/<email_addr>` | Path param `email_addr` | Delete a temporary mailbox |
+| GET | `/api/temp-emails/<email_addr>/messages` | Path param `email_addr` | Get temporary mailbox messages |
+| GET | `/api/temp-emails/<email_addr>/messages/<message_id>` | Path param | Get one temporary mail message |
+| DELETE | `/api/temp-emails/<email_addr>/messages/<message_id>` | Path param | Currently returns "single-message deletion is temporarily disabled" |
+| DELETE | `/api/temp-emails/<email_addr>/clear` | Path param | Currently returns "clear is temporarily disabled" |
+| POST | `/api/temp-emails/<email_addr>/refresh` | Path param | Refresh a temporary mailbox manually |
 
-`GET /messages` 与 `POST /refresh` 都会返回统一结构的 `emails` 列表。`POST /refresh` 还会包含 `new_count`，表示本次新保存的邮件数量。
+Both `GET /messages` and `POST /refresh` return a unified `emails` list. `POST /refresh` also includes `new_count`, which is the number of newly saved messages.
 
-## OAuth 辅助接口
+## OAuth Helper Endpoints
 
-| 方法 | 路径 | 参数 | 说明 |
+| Method | Path | Parameters | Description |
 | --- | --- | --- | --- |
-| GET | `/api/oauth/auth-url` | 无 | 生成 Microsoft OAuth 授权链接 |
-| POST | `/api/oauth/exchange-token` | JSON: `redirected_url` | 从回调 URL 中解析 `code` 并换取 Refresh Token |
+| GET | `/api/oauth/auth-url` | None | Generate a Microsoft OAuth authorization link |
+| POST | `/api/oauth/exchange-token` | JSON: `redirected_url` | Parse `code` from the callback URL and exchange it for a Refresh Token |
 
-换取 Token 请求示例：
+Token exchange request example:
 
 ```json
 {
@@ -1482,13 +1482,13 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 }
 ```
 
-## 设置接口
+## Settings Endpoints
 
 ### POST `/api/settings/validate-cron`
 
-验证 Cron 表达式，并返回下一次执行时间与未来 5 次执行时间。
+Validate a Cron expression and return the next execution time plus the next 5 run times.
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -1497,93 +1497,93 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 }
 ```
 
-可选字段 `time_zone` 用于按指定 IANA 时区预览下一次执行时间；未传时使用当前系统设置中的 `app_timezone`。
+The optional `time_zone` field previews the next run in the given IANA time zone. If omitted, the current system `app_timezone` is used.
 
 ### GET `/api/settings`
 
-获取系统设置。
+Get system settings.
 
-除数据库 `settings` 表中的原始键值外，接口还会额外整理并返回以下常用字段：
+In addition to the raw `settings` table values, the API also returns these common fields:
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| `login_password_masked` | 登录密码掩码 |
-| `external_api_key` | 当前对外 API Key |
-| `duckmail_base_url` | DuckMail API 地址 |
+| `login_password_masked` | Masked login password |
+| `external_api_key` | Current external API Key |
+| `duckmail_base_url` | DuckMail API URL |
 | `duckmail_api_key` | DuckMail API Key |
-| `cloudflare_worker_domain` | Cloudflare Worker 域名 |
-| `cloudflare_email_domains` | Cloudflare 邮箱域名列表，逗号分隔字符串 |
-| `cloudflare_admin_password` | Cloudflare 管理密码 |
-| `app_timezone` | 当前系统时区，IANA 时区名，例如 `Asia/Shanghai` |
-| `show_account_created_at` | 是否在邮箱列表展示创建时间 |
-| `show_account_sort_order` | 是否在邮箱列表展示自定义排序值 |
-| `forward_channels` | 当前启用的转发渠道 |
-| `forward_check_interval_minutes` | 转发检查间隔 |
-| `forward_email_window_minutes` | 转发时间窗口 |
-| `forward_include_junkemail` | 是否转发垃圾箱 |
-| `email_forward_recipient` | SMTP 转发收件人 |
-| `smtp_host` | SMTP 主机 |
-| `smtp_port` | SMTP 端口 |
-| `smtp_username` | SMTP 用户名 |
-| `smtp_password` | SMTP 密码 |
-| `smtp_from_email` | SMTP 发件邮箱 |
-| `smtp_provider` | SMTP 类型 |
-| `smtp_use_tls` | 是否启用 TLS |
-| `smtp_use_ssl` | 是否启用 SSL |
-| `telegram_bot_token` | Telegram Bot Token |
-| `telegram_chat_id` | Telegram Chat ID |
+| `cloudflare_worker_domain` | Cloudflare Worker domain |
+| `cloudflare_email_domains` | Cloudflare mailbox domain list, comma-separated |
+| `cloudflare_admin_password` | Cloudflare admin password |
+| `app_timezone` | Current system time zone, IANA name such as `Asia/Shanghai` |
+| `show_account_created_at` | Whether to show account creation time in the mailbox list |
+| `show_account_sort_order` | Whether to show custom sort order in the mailbox list |
+| `forward_channels` | Enabled forwarding channels |
+| `forward_check_interval_minutes` | Forwarding check interval |
+| `forward_email_window_minutes` | Forwarding time window |
+| `forward_include_junkemail` | Whether junk mail is included |
+| `email_forward_recipient` | SMTP forwarding recipient |
+| `smtp_host` | SMTP host |
+| `smtp_port` | SMTP port |
+| `smtp_username` | SMTP username |
+| `smtp_password` | SMTP password |
+| `smtp_from_email` | SMTP sender address |
+| `smtp_provider` | SMTP type |
+| `smtp_use_tls` | Whether TLS is enabled |
+| `smtp_use_ssl` | Whether SSL is enabled |
+| `telegram_bot_token` | Telegram bot token |
+| `telegram_chat_id` | Telegram chat ID |
 
 ### PUT `/api/settings`
 
-更新系统设置。当前实现支持的主要可写字段如下。
+Update system settings. The main writable fields currently supported are listed below.
 
-#### 基础与调度相关字段
+#### General and scheduling fields
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `login_password` | string | 登录密码，至少 8 位 |
+| `login_password` | string | Login password, at least 8 characters |
 | `gptmail_api_key` | string | GPTMail API Key |
-| `refresh_interval_days` | int | 刷新周期，范围 `1-90` |
-| `refresh_delay_seconds` | int | 刷新间隔秒数，范围 `0-60` |
-| `refresh_cron` | string | Cron 表达式 |
-| `use_cron_schedule` | bool | 是否使用 Cron 调度 |
-| `enable_scheduled_refresh` | bool | 是否开启定时刷新 |
-| `app_timezone` | string | 系统时区，使用 IANA 时区名，例如 `Asia/Shanghai` |
-| `show_account_created_at` | bool | 是否在邮箱列表展示创建时间 |
-| `show_account_sort_order` | bool | 是否在邮箱列表展示自定义排序值 |
-| `external_api_key` | string | 对外 API Key，可传空字符串清空 |
+| `refresh_interval_days` | int | Refresh interval, range `1-90` |
+| `refresh_delay_seconds` | int | Delay in seconds between refreshes, range `0-60` |
+| `refresh_cron` | string | Cron expression |
+| `use_cron_schedule` | bool | Whether to use Cron scheduling |
+| `enable_scheduled_refresh` | bool | Whether scheduled refresh is enabled |
+| `app_timezone` | string | System time zone, using an IANA name such as `Asia/Shanghai` |
+| `show_account_created_at` | bool | Whether to show account creation time in the mailbox list |
+| `show_account_sort_order` | bool | Whether to show custom sort order in the mailbox list |
+| `external_api_key` | string | External API Key; can be cleared by sending an empty string |
 
-#### 临时邮箱服务相关字段
+#### Temporary mailbox service fields
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `duckmail_base_url` | string | DuckMail API 地址 |
+| `duckmail_base_url` | string | DuckMail API URL |
 | `duckmail_api_key` | string | DuckMail API Key |
-| `cloudflare_worker_domain` | string | Cloudflare Worker 域名 |
-| `cloudflare_email_domains` | string | Cloudflare 邮箱域名，逗号分隔 |
-| `cloudflare_admin_password` | string | Cloudflare 管理密码 |
+| `cloudflare_worker_domain` | string | Cloudflare Worker domain |
+| `cloudflare_email_domains` | string | Cloudflare mailbox domains, comma-separated |
+| `cloudflare_admin_password` | string | Cloudflare admin password |
 
-#### 转发与 SMTP / Telegram 相关字段
+#### Forwarding and SMTP / Telegram fields
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 | --- | --- | --- |
-| `forward_check_interval_minutes` | int | 轮询间隔，范围 `1-60` |
-| `forward_email_window_minutes` | int | 转发邮件时间范围，范围 `0-10080`，`0` 表示不限制 |
-| `forward_include_junkemail` | bool | 是否把垃圾箱邮件也纳入转发轮询 |
+| `forward_check_interval_minutes` | int | Polling interval, range `1-60` |
+| `forward_email_window_minutes` | int | Forwarding window, range `0-10080`, where `0` means unlimited |
+| `forward_include_junkemail` | bool | Whether junk mail is included in forwarding polls |
 | `forward_channels` | array<string> | `smtp` / `telegram` |
-| `email_forward_recipient` | string | SMTP 转发收件人 |
-| `smtp_host` | string | SMTP 主机 |
-| `smtp_port` | int | SMTP 端口 |
-| `smtp_username` | string | SMTP 用户名 |
-| `smtp_password` | string | SMTP 密码 |
-| `smtp_from_email` | string | SMTP 发件邮箱 |
-| `smtp_provider` | string | `outlook`、`qq`、`163`、`126`、`yahoo`、`aliyun`、`custom` |
-| `smtp_use_tls` | bool | 是否启用 TLS |
-| `smtp_use_ssl` | bool | 是否启用 SSL |
-| `telegram_bot_token` | string | Telegram Bot Token |
-| `telegram_chat_id` | string | Telegram Chat ID |
+| `email_forward_recipient` | string | SMTP forwarding recipient |
+| `smtp_host` | string | SMTP host |
+| `smtp_port` | int | SMTP port |
+| `smtp_username` | string | SMTP username |
+| `smtp_password` | string | SMTP password |
+| `smtp_from_email` | string | SMTP sender address |
+| `smtp_provider` | string | `outlook`, `qq`, `163`, `126`, `yahoo`, `aliyun`, `custom` |
+| `smtp_use_tls` | bool | Whether TLS is enabled |
+| `smtp_use_ssl` | bool | Whether SSL is enabled |
+| `telegram_bot_token` | string | Telegram bot token |
+| `telegram_chat_id` | string | Telegram chat ID |
 
-#### 请求示例
+#### Request example
 
 ```json
 {
@@ -1597,11 +1597,11 @@ ZIP 内文件名使用附件原始文件名；如果多个附件同名，会自�
 
 ### POST `/api/settings/test-forward-channel`
 
-使用当前前端表单配置直接测试转发渠道，不要求先保存设置。
+Test a forwarding channel directly using the current frontend form configuration, without saving settings first.
 
-#### 请求示例
+#### Request examples
 
-SMTP 测试：
+SMTP test:
 
 ```json
 {
@@ -1622,7 +1622,7 @@ SMTP 测试：
 }
 ```
 
-Telegram 测试：
+Telegram test:
 
 ```json
 {
@@ -1636,36 +1636,36 @@ Telegram 测试：
 }
 ```
 
-## 说明
+## Notes
 
-### 代理使用
+### Proxy Usage
 
-账号邮箱相关 API 当前会优先继承账号所属分组的 `proxy_url`：
+Mailbox-related APIs currently inherit the `proxy_url` from the account's group first:
 
-- Graph token 获取
-- Graph 邮件列表
-- Graph 邮件详情
-- Outlook OAuth IMAP token 获取
-- Outlook OAuth IMAP 列表 / 详情 / 删除回退
-- 密码型 IMAP 列表 / 详情
-- 转发轮询抓信 / 详情抓取
+- Graph token acquisition
+- Graph mail list
+- Graph mail details
+- Outlook OAuth IMAP token acquisition
+- Outlook OAuth IMAP list / detail / delete fallback
+- Password-based IMAP list / detail
+- Forwarding poll mail fetch / detail fetch
 
-### 别名冲突规则
+### Alias Conflict Rules
 
-别名保存时会校验：
+Alias saving validates that the alias:
 
-- 不能与本账号主邮箱重复
-- 不能与其他账号主邮箱重复
-- 不能与其他账号别名重复
-- 不能与临时邮箱地址冲突
+- Cannot duplicate the account's primary email
+- Cannot duplicate another account's primary email
+- Cannot duplicate another account's alias
+- Cannot conflict with a temporary mailbox address
 
-### 特殊响应类型
+### Special Response Types
 
-以下接口不是普通 JSON 数据接口：
+These endpoints do not return ordinary JSON:
 
 - `GET /api/accounts/refresh-all`: `text/event-stream`
 - `GET /api/accounts/refresh-failed-stream`: `text/event-stream`
 - `GET /api/accounts/trigger-scheduled-refresh`: `text/event-stream`
-- `GET /api/groups/<group_id>/export`: `text/plain` 文件下载
-- `GET /api/accounts/export`: `text/plain` 文件下载
-- `POST /api/accounts/export-selected`: `text/plain` 文件下载
+- `GET /api/groups/<group_id>/export`: `text/plain` file download
+- `GET /api/accounts/export`: `text/plain` file download
+- `POST /api/accounts/export-selected`: `text/plain` file download

@@ -1,95 +1,95 @@
-# 🔐 安全配置
+# Security Configuration
 
-## 1. 修改默认密码
+## 1. Change the Default Password
 
-**方式一：通过环境变量**
+**Option 1: Via environment variables**
 
-在 `docker-compose.yml` 中：
+In `docker-compose.yml`:
 ```yaml
 environment:
   - LOGIN_PASSWORD=your_secure_password_here
   - SECRET_KEY=your-random-secret-key-here
 ```
 
-**方式二：通过 Web 界面**
+**Option 2: Via the Web UI**
 
-登录后点击「⚙️ 设置」按钮，在线修改登录密码。
+After logging in, click the "Settings" button to change the login password online.
 
-## 2. 启用 CSRF 防护（推荐）
+## 2. Enable CSRF Protection (Recommended)
 
-CSRF 防护默认启用，如果未安装 flask-wtf，系统会优雅降级：
+CSRF protection is enabled by default. If `flask-wtf` is not installed, the system degrades gracefully:
 
 ```bash
 pip install flask-wtf>=1.2.0
 ```
 
-**CSRF 防护特性：**
-- 自动为所有状态变更操作添加 CSRF Token
-- 防止跨站请求伪造攻击
-- 对用户完全透明，无需手动操作
-- 未安装时自动降级，不影响功能使用
+**CSRF features:**
+- Automatically adds a CSRF token to all state-changing requests
+- Helps prevent cross-site request forgery attacks
+- Transparent to users, no manual steps required
+- Falls back gracefully when not installed, without breaking functionality
 
-## 3. 登录速率限制
+## 3. Login Rate Limiting
 
-系统内置登录速率限制，防止暴力破解：
+The system includes built-in login rate limiting to prevent brute-force attacks:
 
-- **失败次数限制**：5 次失败后锁定
-- **锁定时长**：15 分钟
-- **基于 IP**：每个 IP 独立计数
-- **自动解锁**：锁定时间到期后自动解锁
+- **Failure limit**: locked after 5 failed attempts
+- **Lock duration**: 15 minutes
+- **Per-IP tracking**: each IP is counted independently
+- **Automatic unlock**: unlocked after the lock duration expires
 
-## 4. 敏感数据加密
+## 4. Encrypt Sensitive Data
 
-所有敏感数据都经过加密存储：
+All sensitive data is encrypted at rest:
 
-**加密内容：**
-- Refresh Token（Fernet 对称加密）
-- 登录密码（bcrypt 哈希）
-- 邮箱密码（Fernet 对称加密）
-- 对外 API Key（Fernet 对称加密）
+**Encrypted content:**
+- Refresh tokens (Fernet symmetric encryption)
+- Login passwords (bcrypt hashes)
+- Mailbox passwords (Fernet symmetric encryption)
+- External API keys (Fernet symmetric encryption)
 
-**加密密钥：**
-- 基于 SECRET_KEY 派生加密密钥
-- 使用 PBKDF2HMAC 密钥派生函数
-- 100,000 次迭代，SHA256 算法
+**Encryption key:**
+- Derived from `SECRET_KEY`
+- Uses the `PBKDF2HMAC` key derivation function
+- 100,000 iterations with SHA256
 
-**重要提示：**
-- SECRET_KEY 必须保持不变
-- Windows `exe` 首次启动会自动生成并持久化 SECRET_KEY
-- Docker、Python 直跑和生产环境应显式设置固定 SECRET_KEY
-- 更改 SECRET_KEY 会导致无法解密已存储的数据
-- 如需更改，请先导出账号，更改后重新导入
+**Important:**
+- `SECRET_KEY` must remain unchanged
+- The Windows `exe` auto-generates and persists `SECRET_KEY` on first launch
+- Docker, direct Python runs, and production environments should set a fixed `SECRET_KEY` explicitly
+- Changing `SECRET_KEY` will make existing stored data impossible to decrypt
+- If you must change it, export the accounts first, then re-import after the change
 
-## 5. 导出功能二次验证
+## 5. Double-Check Exports
 
-导出功能需要密码确认，防止未授权导出：
+Export features require password confirmation to prevent unauthorized data export:
 
-**保护机制：**
-- 导出前需要输入登录密码
-- 一次性验证 Token，使用后立即失效
-- 所有导出操作记录审计日志
-- 记录操作时间、IP 地址和导出详情
+**Protection mechanism:**
+- The login password must be entered before exporting
+- A one-time verification token is issued and expires after use
+- All export operations are recorded in the audit log
+- Operation time, IP address, and export details are logged
 
-**审计日志：**
+**Audit log query:**
 ```sql
 SELECT * FROM audit_logs WHERE action = 'export' ORDER BY created_at DESC;
 ```
 
-## 6. XSS 防护
+## 6. XSS Protection
 
-多层 XSS 防护机制：
+Multiple layers of XSS protection are used:
 
-**前端防护：**
-- 用户输入自动转义（escapeHtml）
-- 邮件内容使用 DOMPurify 净化
-- iframe 沙箱隔离（sandbox="allow-same-origin"）
+**Frontend protection:**
+- User input is escaped automatically (`escapeHtml`)
+- Mail content is sanitized with DOMPurify
+- iframe sandbox isolation (`sandbox="allow-same-origin"`)
 
-**后端防护：**
-- 输入净化函数（sanitize_input）
-- HTML 特殊字符转义
-- 长度限制和控制字符过滤
+**Backend protection:**
+- Input sanitization function (`sanitize_input`)
+- Escaping of HTML special characters
+- Length limits and control-character filtering
 
-**DOMPurify 配置：**
+**DOMPurify configuration:**
 ```javascript
 DOMPurify.sanitize(content, {
     ALLOWED_TAGS: ['a', 'b', 'i', 'u', 'strong', 'em', 'p', 'br', 'div', ...],
@@ -98,7 +98,7 @@ DOMPurify.sanitize(content, {
 });
 ```
 
-## 7. 配置防火墙
+## 7. Configure the Firewall
 
 ```bash
 sudo ufw allow 80/tcp
@@ -107,7 +107,7 @@ sudo ufw allow 5000/tcp
 sudo ufw enable
 ```
 
-## 8. 限制访问来源（Nginx）
+## 8. Restrict Access Sources (Nginx)
 
 ```nginx
 location / {
@@ -117,30 +117,30 @@ location / {
 }
 ```
 
-## 9. 使用强密码
+## 9. Use Strong Passwords
 
-- 登录密码至少 8 位，包含大小写字母、数字和特殊字符
-- **SECRET_KEY 应使用随机生成的长字符串（至少 32 字节）**
-- 生成方法：`python -c 'import secrets; print(secrets.token_hex(32))'`
-- 定期更换密码
+- The login password should be at least 8 characters and include uppercase letters, lowercase letters, numbers, and special characters
+- `SECRET_KEY` should be a randomly generated long string (at least 32 bytes)
+- Generate one with: `python -c 'import secrets; print(secrets.token_hex(32))'`
+- Rotate passwords periodically
 
-## 10. 数据备份
+## 10. Back Up Your Data
 
 ```bash
-# 备份数据库
+# Back up the database
 cp data/outlook_accounts.db data/outlook_accounts.db.backup
 
-# 定期备份（crontab）
+# Scheduled backup (crontab)
 0 2 * * * cp /path/to/data/outlook_accounts.db /path/to/backup/outlook_accounts.db.$(date +\%Y\%m\%d)
 ```
 
-## 安全最佳实践
+## Security Best Practices
 
-1. **固定 SECRET_KEY**：服务器部署必须显式设置，桌面版需保留自动生成的密钥文件
-2. **启用 HTTPS**：生产环境使用 SSL/TLS 加密
-3. **定期更新**：及时更新到最新版本
-4. **监控日志**：定期查看审计日志和应用日志
-5. **限制访问**：使用防火墙和 Nginx 限制访问来源
-6. **备份数据**：定期备份数据库文件
-7. **强密码策略**：使用复杂密码并定期更换
-8. **安装 CSRF 防护**：`pip install flask-wtf`
+1. **Keep `SECRET_KEY` fixed**: server deployments must set it explicitly; the desktop build should preserve the auto-generated key file
+2. **Enable HTTPS**: use SSL/TLS encryption in production
+3. **Update regularly**: keep the application on the latest version
+4. **Monitor logs**: review audit logs and application logs regularly
+5. **Restrict access**: use a firewall and Nginx to limit access sources
+6. **Back up data**: back up the database file regularly
+7. **Use strong passwords**: use complex passwords and rotate them periodically
+8. **Install CSRF protection**: `pip install flask-wtf`
