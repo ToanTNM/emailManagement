@@ -5,12 +5,12 @@
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22,6 12,13 2,6"></polyline>
             </svg>
-            <span class="navbar-brand-title">Outlook 邮件</span>
+            <span class="navbar-brand-title">Outlook Mail</span>
             <div class="navbar-brand-meta">
                 <div class="app-version" id="appVersion">
                     <button class="app-version-chip" id="appVersionChip" type="button" aria-expanded="false"
                         aria-controls="appVersionPopover" onclick="return toggleVersionPopover()">
-                        <span class="app-version-chip__label">版本</span>
+                        <span class="app-version-chip__label">Version</span>
                         <span class="app-version-chip__value" id="appVersionValue">v{{ app_version }}</span>
                         <span class="app-version-chip__upgrade-badge" id="appVersionUpgradeBadge" hidden aria-hidden="true">
                             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -19,25 +19,25 @@
                             </svg>
                         </span>
                     </button>
-                    <div class="app-version-popover" id="appVersionPopover" role="dialog" aria-label="版本信息"
+                    <div class="app-version-popover" id="appVersionPopover" role="dialog" aria-label="Version information"
                         aria-hidden="true" hidden>
-                        <div class="app-version-popover__eyebrow">当前版本</div>
+                        <div class="app-version-popover__eyebrow">Current version</div>
                         <div class="app-version-popover__value" id="appVersionPopoverValue">v{{ app_version }}</div>
                         <div class="app-version-popover__meta">
-                            <span class="app-version-status" id="appVersionStatus" data-state="checking">检查中</span>
-                            <span class="app-version-popover__hint" id="appVersionHint">正在检查仓库版本...</span>
+                            <span class="app-version-status" id="appVersionStatus" data-state="checking">Checking</span>
+                            <span class="app-version-popover__hint" id="appVersionHint">Checking repository version...</span>
                         </div>
                         <div class="app-version-popover__actions">
                             <button class="app-version-link" id="copyAppVersionBtn" type="button"
-                                onclick="copyAppVersion()">复制版本号</button>
+                                onclick="copyAppVersion()">Copy version</button>
                             <a href="{{ changelog_url }}" target="_blank" rel="noreferrer" class="app-version-link"
-                                id="appVersionActionLink" data-default-label="查看更新日志">
-                                查看更新日志
+                                id="appVersionActionLink" data-default-label="View changelog">
+                                View changelog
                             </a>
                             <button class="app-version-link app-version-link--primary" id="appVersionDockerUpdateBtn"
-                                type="button" data-default-label="Docker 更新" data-unavailable-label="不可在线更新"
+                                type="button" data-default-label="Docker update" data-unavailable-label="Online update unavailable"
                                 onclick="startDockerUpdate()" hidden>
-                                Docker 更新
+                                Docker update
                             </button>
                         </div>
                         <div class="app-version-popover__hint">
@@ -65,8 +65,8 @@
             </div>
         </div>
         <div class="navbar-center">
-            <div class="current-account" id="currentAccount" onclick="copyCurrentEmail()" title="点击复制邮箱地址">
-                当前邮箱：<strong id="currentAccountEmail"></strong>
+            <div class="current-account" id="currentAccount" onclick="copyCurrentEmail()" title="Click to copy mailbox address">
+                Current mailbox: <strong id="currentAccountEmail"></strong>
             </div>
         </div>
         <div class="navbar-actions">
@@ -77,13 +77,17 @@
                     <path d="M2 8h12"></path>
                     <path d="M2 12h12"></path>
                 </svg>
-                操作
+                Actions
             </button>
             <div class="navbar-actions-menu" id="navbarActionsMenu">
-                <button class="navbar-btn" id="refreshTokensBtn" type="button" onclick="showRefreshModal()">Token刷新管理</button>
-                <button class="navbar-btn" id="exportAccountsBtn" type="button" onclick="showExportModal()">导出邮箱</button>
-                <button class="navbar-btn" id="openSettingsBtn" type="button" onclick="showSettingsModal()">⚙️ 设置</button>
-                <button class="navbar-btn" id="logoutBtn" type="button" onclick="logout()" style="color: #dc3545;">退出登录</button>
+                <select class="locale-switcher" data-locale-switcher aria-label="Select language">
+                    <option value="en">English</option>
+                    <option value="zh-CN">简体中文</option>
+                </select>
+                <button class="navbar-btn" id="refreshTokensBtn" type="button" onclick="showRefreshModal()">Token Refresh</button>
+                <button class="navbar-btn" id="exportAccountsBtn" type="button" onclick="showExportModal()">Export Mailboxes</button>
+                <button class="navbar-btn" id="openSettingsBtn" type="button" onclick="showSettingsModal()">⚙️ Settings</button>
+                <button class="navbar-btn" id="logoutBtn" type="button" onclick="logout()" style="color: #dc3545;">Sign Out</button>
             </div>
         </div>
     </nav>
@@ -93,8 +97,8 @@
         <!-- 分组面板 -->
         <div class="group-panel" id="groupPanel">
             <div class="panel-header">
-                <span class="panel-title">分组</span>
-                <button class="panel-action-btn" onclick="showAddGroupModal()" title="添加分组">+</button>
+                <span class="panel-title">Groups</span>
+                <button class="panel-action-btn" onclick="showAddGroupModal()" title="Add Group">+</button>
             </div>
             <div class="group-list" id="groupList">
                 <!-- 分组列表将通过 JS 动态加载 -->
@@ -107,18 +111,18 @@
                 <div class="account-panel-title" id="accountPanelTitle">
                     <span class="group-color" id="currentGroupColor" style="background-color: #666"></span>
                     <span class="current-group-title-wrap">
-                        <span id="currentGroupName">选择分组</span>
+                        <span id="currentGroupName">Select a group</span>
                         <span class="group-id-badge current-group-id" id="currentGroupIdBadge" style="display: none;"></span>
                     </span>
                 </div>
                 <div class="account-panel-header-actions">
-                    <button class="panel-action-btn" onclick="showTagManagementModal()" title="管理标签">
+                    <button class="panel-action-btn" onclick="showTagManagementModal()" title="Manage tags">
                         🏷️
                     </button>
-                    <button class="panel-action-btn panel-action-btn-accent" onclick="showGetRefreshTokenModal()" title="授权并保存 Outlook 账号">
+                    <button class="panel-action-btn panel-action-btn-accent" onclick="showGetRefreshTokenModal()" title="Authorize and Save Outlook Account">
                         🔑
                     </button>
-                    <button class="panel-action-btn panel-action-btn-primary" onclick="showAddAccountModal()" title="导入邮箱账号">
+                    <button class="panel-action-btn panel-action-btn-primary" onclick="showAddAccountModal()" title="Import Mailboxes">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" />
@@ -128,16 +132,16 @@
             </div>
             <div class="account-toolbar">
                 <div class="search-container">
-                    <input type="text" id="globalSearch" class="search-input" placeholder="搜索邮箱地址、别名、备注或标签..."
+                    <input type="text" id="globalSearch" class="search-input" placeholder="Search email, alias, note, or tag..."
                         autocomplete="off">
                 </div>
                 <!-- 临时邮箱渠道筛选 -->
                 <div id="tempEmailProviderFilter" class="toolbar-row" style="display: none;">
-                    <span class="toolbar-label">渠道</span>
+                    <span class="toolbar-label">Channel</span>
                     <div class="toolbar-chip-group">
                         <button class="provider-filter-btn" data-provider="all"
                             onclick="filterTempEmailByProvider('all')">
-                            全部
+                            All
                         </button>
                         <button class="provider-filter-btn" data-provider="gptmail"
                             onclick="filterTempEmailByProvider('gptmail')">
@@ -154,16 +158,16 @@
                     </div>
                 </div>
                 <div class="sort-control toolbar-row">
-                    <span class="toolbar-label">排序</span>
+                    <span class="toolbar-label">Sort</span>
                     <div class="toolbar-chip-group">
                         <button class="sort-btn active" data-sort="sort_order" onclick="sortAccounts('sort_order')">
-                            排序值
+                            Sort order
                         </button>
                         <button class="sort-btn" data-sort="created_at" onclick="sortAccounts('created_at')">
-                            创建时间
+                            Created at
                         </button>
                         <button class="sort-btn" data-sort="email" onclick="sortAccounts('email')">
-                            邮箱名
+                            Mailbox name
                         </button>
                     </div>
                 </div>
@@ -174,13 +178,13 @@
                     <div id="accountPageSizeContainer" class="account-page-size-row">
                         <select id="accountPageSizeSelect" class="account-page-size-select"
                             onchange="handleAccountPageSizeChange(this.value)">
-                            <option value="100">每页 100</option>
-                            <option value="200" selected>每页 200</option>
-                            <option value="500">每页 500</option>
-                            <option value="1000">每页 1000</option>
-                            <option value="2000">每页 2000</option>
-                            <option value="5000">每页 5000</option>
-                            <option value="10000">每页 10000</option>
+                            <option value="100">100 / page</option>
+                            <option value="200" selected>200 / page</option>
+                            <option value="500">500 / page</option>
+                            <option value="1000">1000 / page</option>
+                            <option value="2000">2000 / page</option>
+                            <option value="5000">5000 / page</option>
+                            <option value="10000">10000 / page</option>
                         </select>
                     </div>
                 </div>
@@ -188,28 +192,28 @@
             <div class="account-list" id="accountList">
                 <div class="empty-state">
                     <div class="empty-state-icon">📁</div>
-                    <div class="empty-state-text">请从左侧选择一个分组</div>
+                    <div class="empty-state-text">Select a group from the left.</div>
                 </div>
             </div>
             <!-- 批量操作栏 -->
             <div id="batchActionBar" class="batch-action-bar">
                 <div class="batch-action-bar__summary">
-                    <span id="selectedCount" class="batch-selection-count">已选 0 项</span>
+                    <span id="selectedCount" class="batch-selection-count">0 selected</span>
                 </div>
                 <div class="batch-action-bar__controls">
                     <div class="batch-action-group">
-                        <button class="batch-btn batch-btn-secondary" id="accountSelectAllBtn" onclick="toggleSelectAllAccounts()">全选</button>
-                        <button class="batch-btn batch-btn-secondary" onclick="clearAccountSelection()">清空选择</button>
+                        <button class="batch-btn batch-btn-secondary" id="accountSelectAllBtn" onclick="toggleSelectAllAccounts()">Select all</button>
+                        <button class="batch-btn batch-btn-secondary" onclick="clearAccountSelection()">Clear selection</button>
                     </div>
                     <div class="batch-action-group batch-action-group--accent">
-                        <button class="batch-btn batch-btn-primary" id="batchRefreshTokensBtn" onclick="refreshSelectedAccounts()">刷新 Token</button>
-                        <button class="batch-btn batch-btn-accent" id="batchCopyEmailsBtn" onclick="copySelectedAccountsWithAliases()">复制邮箱+别名</button>
-                        <button class="batch-btn batch-btn-accent" id="batchEnableForwardingBtn" onclick="enableForwardingForSelectedAccounts()">开启转发</button>
-                        <button class="batch-btn batch-btn-accent" id="batchDisableForwardingBtn" onclick="disableForwardingForSelectedAccounts()">取消转发</button>
-                        <button class="batch-btn batch-btn-accent" id="batchAddTagBtn" onclick="showBatchTagModal('add')">标签+</button>
-                        <button class="batch-btn batch-btn-accent" id="batchRemoveTagBtn" onclick="showBatchTagModal('remove')">标签-</button>
-                        <button class="batch-btn batch-btn-accent" id="batchMoveGroupBtn" onclick="showBatchMoveGroupModal()">移动</button>
-                        <button class="batch-btn batch-btn-danger" id="batchDeleteAccountsBtn" onclick="deleteSelectedAccounts()">删除</button>
+                        <button class="batch-btn batch-btn-primary" id="batchRefreshTokensBtn" onclick="refreshSelectedAccounts()">Refresh Token</button>
+                        <button class="batch-btn batch-btn-accent" id="batchCopyEmailsBtn" onclick="copySelectedAccountsWithAliases()">Copy email + aliases</button>
+                        <button class="batch-btn batch-btn-accent" id="batchEnableForwardingBtn" onclick="enableForwardingForSelectedAccounts()">Enable forwarding</button>
+                        <button class="batch-btn batch-btn-accent" id="batchDisableForwardingBtn" onclick="disableForwardingForSelectedAccounts()">Disable forwarding</button>
+                        <button class="batch-btn batch-btn-accent" id="batchAddTagBtn" onclick="showBatchTagModal('add')">Tag +</button>
+                        <button class="batch-btn batch-btn-accent" id="batchRemoveTagBtn" onclick="showBatchTagModal('remove')">Tag -</button>
+                        <button class="batch-btn batch-btn-accent" id="batchMoveGroupBtn" onclick="showBatchMoveGroupModal()">Move</button>
+                        <button class="batch-btn batch-btn-danger" id="batchDeleteAccountsBtn" onclick="deleteSelectedAccounts()">Delete</button>
                     </div>
                 </div>
             </div>
@@ -219,16 +223,16 @@
         <div class="content-area">
             <div class="mobile-quickbar" id="mobileQuickbar">
                 <button class="mobile-quickbar-btn" id="mobileGroupBtn" type="button">
-                    <span class="mobile-quickbar-label">分组</span>
-                    <span class="mobile-quickbar-value" id="mobileCurrentGroup">未选择</span>
+                    <span class="mobile-quickbar-label">Groups</span>
+                    <span class="mobile-quickbar-value" id="mobileCurrentGroup">Not selected</span>
                 </button>
                 <button class="mobile-quickbar-btn" id="mobileAccountBtn" type="button">
-                    <span class="mobile-quickbar-label">邮箱</span>
-                    <span class="mobile-quickbar-value" id="mobileCurrentAccount">未选择</span>
+                    <span class="mobile-quickbar-label">Mailbox</span>
+                    <span class="mobile-quickbar-value" id="mobileCurrentAccount">Not selected</span>
                 </button>
                 <button class="mobile-quickbar-btn" id="mobileListBtn" type="button">
-                    <span class="mobile-quickbar-label">邮件</span>
-                    <span class="mobile-quickbar-value" id="mobileListButtonHint">当前列表</span>
+                    <span class="mobile-quickbar-label">Mail</span>
+                    <span class="mobile-quickbar-value" id="mobileListButtonHint">Current list</span>
                 </button>
             </div>
 
@@ -238,49 +242,49 @@
                     <div class="email-list-header-top">
                         <div class="email-list-title-wrap">
                             <div class="email-list-title-row">
-                                <h2 style="margin: 0;">邮件</h2>
+                                <h2 style="margin: 0;">Mail</h2>
                                 <span class="email-count" id="emailCount"></span>
                             </div>
                             <div class="email-list-header-meta">
                                 <span class="method-tag" id="methodTag" style="display:none;"></span>
-                                <span class="email-list-hint">按时间顺序查看邮件</span>
+                                <span class="email-list-hint">View emails in chronological order</span>
                             </div>
                         </div>
-                        <button class="refresh-btn" onclick="refreshEmails()">获取邮件</button>
+                        <button class="refresh-btn" onclick="refreshEmails()">Fetch Mail</button>
                     </div>
                     <div class="folder-tabs" id="folderTabs" style="display: none;">
                         <button class="folder-tab active" data-folder="all" onclick="switchFolder('all')">
-                            📥 全部邮件
+                            📥 All mail
                         </button>
                         <button class="folder-tab" data-folder="inbox" onclick="switchFolder('inbox')">
-                            📨 收件箱
+                            📨 Inbox
                         </button>
                         <button class="folder-tab" data-folder="junkemail" onclick="switchFolder('junkemail')">
-                            ⚠️ 垃圾邮件
+                            ⚠️ Junk
                         </button>
                     </div>
                 </div>
                 <div class="email-list" id="emailList">
                     <div class="empty-state">
                         <div class="empty-state-icon">📬</div>
-                        <div class="empty-state-text">请从左侧选择一个邮箱账号</div>
+                        <div class="empty-state-text">Select a mailbox from the left.</div>
                     </div>
                 </div>
                 <!-- Email Batch Action Bar -->
                 <div id="emailBatchActionBar" class="batch-action-bar">
                     <div class="batch-action-bar__summary">
-                        <span id="emailSelectedCount" class="batch-selection-count">已选 0 项</span>
+                        <span id="emailSelectedCount" class="batch-selection-count">0 selected</span>
                     </div>
                     <div class="batch-action-bar__controls">
                         <div class="batch-action-group">
-                            <button class="batch-btn batch-btn-secondary" id="emailSelectAllBtn" onclick="toggleSelectAllEmails()">全选</button>
-                            <button class="batch-btn batch-btn-secondary" onclick="clearEmailSelection()">清空选择</button>
+                            <button class="batch-btn batch-btn-secondary" id="emailSelectAllBtn" onclick="toggleSelectAllEmails()">Select all</button>
+                            <button class="batch-btn batch-btn-secondary" onclick="clearEmailSelection()">Clear selection</button>
                         </div>
                         <button class="batch-btn batch-btn-primary" id="batchMarkReadBtn" onclick="markSelectedEmailsAsRead()">
-                            设为已读
+                            Mark as read
                         </button>
                         <button class="batch-btn batch-btn-danger" onclick="confirmBatchDeleteEmails()">
-                            删除
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -290,30 +294,30 @@
             <div class="email-detail-panel">
                 <div class="email-detail-toolbar" id="emailDetailToolbar" style="display:none;">
                     <button class="back-btn email-detail-action-btn email-detail-action-btn--back" type="button"
-                        title="返回邮件列表" aria-label="返回邮件列表" onclick="showEmailList()">
-                        <span class="email-detail-action-btn__text">← 返回</span>
+                        title="Back to mail list" aria-label="Back to mail list" onclick="showEmailList()">
+                        <span class="email-detail-action-btn__text">← Back</span>
                     </button>
                     <button class="toggle-list-btn" onclick="toggleEmailList()">
-                        <span id="toggleListText">隐藏列表</span>
+                        <span id="toggleListText">Hide list</span>
                     </button>
                     <button class="fullscreen-btn email-detail-action-btn email-detail-action-btn--fullscreen" type="button"
-                        title="全屏查看" aria-label="全屏查看" onclick="openFullscreenEmail()">
-                        <span class="email-detail-action-btn__text">🔍 全屏查看</span>
+                        title="Fullscreen" aria-label="Fullscreen" onclick="openFullscreenEmail()">
+                        <span class="email-detail-action-btn__text">🔍 Fullscreen</span>
                     </button>
-                    <label class="email-trust-toggle" title="信任此邮件" aria-label="信任此邮件">
+                    <label class="email-trust-toggle" title="Trust this email" aria-label="Trust this email">
                         <input type="checkbox" id="trustEmailCheckbox" onchange="toggleTrustMode(this)">
-                        <span style="user-select: none;">信任此邮件</span>
+                        <span style="user-select: none;">Trust this email</span>
                     </label>
                     <div class="email-detail-toolbar-spacer"></div>
                     <button class="batch-btn danger email-detail-action-btn email-detail-action-btn--delete" type="button"
-                        title="删除邮件" aria-label="删除邮件" onclick="confirmDeleteCurrentEmail()" style="padding: 4px 8px; font-size: 12px;">
-                        <span class="email-detail-action-btn__text">🗑️ 删除</span>
+                        title="Delete email" aria-label="Delete email" onclick="confirmDeleteCurrentEmail()" style="padding: 4px 8px; font-size: 12px;">
+                        <span class="email-detail-action-btn__text">🗑️ Delete</span>
                     </button>
                 </div>
                 <div id="emailDetail">
                     <div class="empty-state">
                         <div class="empty-state-icon">📄</div>
-                        <div class="empty-state-text">选择一封邮件查看详情</div>
+                        <div class="empty-state-text">Select an email to view details.</div>
                     </div>
                 </div>
             </div>

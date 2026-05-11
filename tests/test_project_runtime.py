@@ -231,6 +231,26 @@ class ProjectRuntimeTests(unittest.TestCase):
         self.assertEqual(response.headers.get('Expires'), '0')
         self.assertIn('Cookie', response.headers.get('Vary', ''))
 
+    def test_login_page_bootstraps_i18n_with_english_default(self):
+        anonymous_client = self.app.test_client()
+        response = anonymous_client.get('/login')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('<html lang="en">', html)
+        self.assertIn('Sign In - Outlook Mail Manager', html)
+        self.assertIn('data-locale-switcher', html)
+        self.assertIn('js/i18n.js', html)
+
+    def test_index_page_includes_i18n_assets_and_switcher(self):
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('Outlook Mail Manager', html)
+        self.assertIn('data-locale-switcher', html)
+        self.assertIn('js/i18n.js', html)
+
     def test_version_status_reports_update_when_remote_repository_is_newer(self):
         with patch.object(
             web_outlook_app,

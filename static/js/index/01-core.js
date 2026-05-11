@@ -200,7 +200,8 @@
                 return '-';
             }
 
-            return date.toLocaleString('zh-CN', {
+            const locale = typeof getCurrentLocale === 'function' ? getCurrentLocale() : 'en';
+            return date.toLocaleString(locale, {
                 timeZone: getAppTimeZone(),
                 year: 'numeric',
                 month: '2-digit',
@@ -527,17 +528,17 @@
 
         function getFolderDisplayName(folder) {
             const names = {
-                all: '全部邮件',
-                inbox: '收件箱',
-                junkemail: '垃圾邮件',
-                deleteditems: '已删除邮件'
+                all: translateAppText('全部邮件'),
+                inbox: translateAppText('收件箱'),
+                junkemail: translateAppText('垃圾邮件'),
+                deleteditems: translateAppText('已删除邮件')
             };
-            return names[String(folder || '').trim().toLowerCase()] || '邮件';
+            return names[String(folder || '').trim().toLowerCase()] || translateAppText('邮件');
         }
 
         function normalizeGroupName(groupName, fallbackName = '未命名分组') {
             const normalizedName = String(groupName || '').trim();
-            return normalizedName || fallbackName;
+            return normalizedName ? translateAppText(normalizedName) : translateAppText(fallbackName);
         }
 
         function formatGroupIdBadgeText(groupId) {
@@ -572,17 +573,17 @@
             if (groupText) {
                 groupText.textContent = currentGroup
                     ? normalizeGroupName(currentGroup.name)
-                    : '未选择';
+                    : translateAppText('未选择');
             }
 
             if (accountText) {
                 accountText.textContent = currentAccount
-                    ? `${currentAccount}${isTempEmailGroup ? ' (临时)' : ''}`
-                    : '未选择';
+                    ? `${currentAccount}${isTempEmailGroup ? ` (${translateAppText('临时邮箱')})` : ''}`
+                    : translateAppText('未选择');
             }
 
             if (listText) {
-                listText.textContent = listHidden ? '返回列表' : '当前列表';
+                listText.textContent = listHidden ? translateAppText('返回列表') : translateAppText('当前列表');
             }
 
             document.body.classList.toggle('mobile-email-detail-open', !!mobileActive && !!listHidden);
@@ -1420,13 +1421,13 @@
 
             // Message span
             const messageSpan = document.createElement('span');
-            messageSpan.textContent = message;
+            messageSpan.textContent = translateAppText(message);
             toast.appendChild(messageSpan);
 
             if (errorDetail && type === 'error') {
                 const detailLink = document.createElement('a');
                 detailLink.href = 'javascript:void(0)';
-                detailLink.textContent = ' [详情]';
+                detailLink.textContent = ` [${translateAppText('显示堆栈/细节')}]`;
                 detailLink.style.color = '#ffdddd';
                 detailLink.style.textDecoration = 'underline';
                 detailLink.style.marginLeft = '8px';
@@ -1475,10 +1476,10 @@
         function showConfirmModal(message, { title = "确认操作", confirmText = "确认", danger = true } = {}) {
             return new Promise((resolve) => {
                 _genericConfirmResolve = resolve;
-                document.getElementById('genericConfirmTitle').textContent = title;
-                document.getElementById('genericConfirmMsg').textContent = message;
+                document.getElementById('genericConfirmTitle').textContent = translateAppText(title);
+                document.getElementById('genericConfirmMsg').textContent = translateAppText(message);
                 const btn = document.getElementById('genericConfirmBtn');
-                btn.textContent = confirmText;
+                btn.textContent = translateAppText(confirmText);
                 btn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
                 closeNavbarActionsMenu();
                 closeMobilePanels();
@@ -1511,8 +1512,8 @@
         // 显示刷新错误信息
         function showRefreshError(accountId, errorMessage, accountEmail) {
             showModal('refreshErrorModal');
-            document.getElementById('refreshErrorEmail').textContent = `账号：${accountEmail || '未知'}`;
-            document.getElementById('refreshErrorMessage').textContent = errorMessage;
+            document.getElementById('refreshErrorEmail').textContent = translateAppText(`账号：${accountEmail || '未知'}`);
+            document.getElementById('refreshErrorMessage').textContent = translateAppText(errorMessage);
             document.getElementById('editAccountFromErrorBtn').onclick = function () {
                 hideRefreshErrorModal();
                 showEditAccountModal(accountId);
@@ -1720,7 +1721,10 @@
                 onAction = ''
             } = options;
 
-            const content = allowHtml ? String(text || '') : escapeHtml(text || '');
+            const translatedText = translateAppText(text || '');
+            const translatedActionLabel = translateAppText(actionLabel || '');
+            const translatedActionTitle = translateAppText(actionTitle || '');
+            const content = allowHtml ? String(translatedText || '') : escapeHtml(translatedText || '');
             const hasAction = typeof onAction === 'string' && onAction.trim() !== '';
 
             return `
@@ -1732,8 +1736,8 @@
                             class="empty-state-refresh-btn"
                             type="button"
                             onclick="${onAction}"
-                            title="${escapeHtml(actionTitle)}"
-                            aria-label="${escapeHtml(actionTitle)}"
+                            title="${escapeHtml(translatedActionTitle)}"
+                            aria-label="${escapeHtml(translatedActionTitle)}"
                         >
                             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                                 <path d="M13.5 3.5v3h-3"></path>
@@ -1741,7 +1745,7 @@
                                 <path d="M4 6.25A4.75 4.75 0 0 1 12.05 4"></path>
                                 <path d="M12 9.75A4.75 4.75 0 0 1 3.95 12"></path>
                             </svg>
-                            <span>${escapeHtml(actionLabel)}</span>
+                            <span>${escapeHtml(translatedActionLabel)}</span>
                         </button>
                     ` : ''}
                 </div>
@@ -1780,7 +1784,7 @@
         // 显示统一错误详情模态框
         function showErrorDetailModal(error) {
             showModal('errorDetailModal');
-            document.getElementById('errorModalUserMessage').textContent = error.message || '发生未知错误';
+            document.getElementById('errorModalUserMessage').textContent = translateAppText(error.message || '发生未知错误');
             document.getElementById('errorModalCode').textContent = error.code || '-';
             document.getElementById('errorModalType').textContent = error.type || '-';
             document.getElementById('errorModalStatus').textContent = error.status || '-';
@@ -1790,11 +1794,11 @@
             const detailsContainer = document.getElementById('errorModalDetailsContainer');
             const toggleBtn = document.getElementById('toggleTraceBtn');
 
-            detailsEl.textContent = formatFetchErrorDetails(error && error.details) || '暂无详细技术堆栈信息';
+            detailsEl.textContent = translateAppText(formatFetchErrorDetails(error && error.details) || '暂无详细技术堆栈信息');
 
             // 重置堆栈显示状态
             detailsContainer.style.display = 'none';
-            toggleBtn.textContent = '显示堆栈/细节';
+            toggleBtn.textContent = translateAppText('显示堆栈/细节');
         }
 
         // 隐藏统一错误详情模态框
@@ -1872,8 +1876,8 @@
             const summaryEl = document.getElementById('emailFetchErrorSummary');
             if (summaryEl) {
                 summaryEl.textContent = methods.length > 1
-                    ? '所有获取方式均失败，以下是各方式的详细错误信息：'
-                    : '获取邮件失败，以下是详细错误信息：';
+                    ? translateAppText('所有获取方式均失败，以下是各方式的详细错误信息：')
+                    : translateAppText('获取邮件失败，以下是详细错误信息：');
             }
 
             let html = '';
@@ -1881,7 +1885,7 @@
                 const err = normalizeMethodError(detailEntries[method]);
                 if (err !== undefined) {
                     const name = methodNames[method] || method;
-                    const reason = translateError(err);
+                    const reason = translateAppText(translateError(err));
                     const codeText = (err && typeof err === 'object') ? (err.code || '-') : '-';
                     const typeText = (err && typeof err === 'object') ? (err.type || '-') : '-';
                     const statusText = (err && typeof err === 'object') ? (err.status || '-') : '-';
@@ -1894,9 +1898,9 @@
                             <div style="font-weight: 600; color: #dc3545; margin-bottom: 6px; font-size: 14px;">${name}</div>
                             <div style="color: #333; font-size: 13px; line-height: 1.6;">${reason}</div>
                             <div style="color: #999; font-size: 12px; margin-top: 6px; line-height: 1.6;">
-                                错误代码: ${escapeHtml(codeText)}<br>
-                                类型: ${escapeHtml(typeText)}<br>
-                                状态码: ${escapeHtml(statusText)}<br>
+                                ${escapeHtml(translateAppText('错误代码: '))}${escapeHtml(codeText)}<br>
+                                ${escapeHtml(translateAppText('类型: '))}${escapeHtml(typeText)}<br>
+                                ${escapeHtml(translateAppText('状态码: '))}${escapeHtml(statusText)}<br>
                                 Trace ID: ${escapeHtml(traceIdText)}
                             </div>
                             ${detailText ? `<pre style="margin-top:10px; padding:10px 12px; background:#fff; border:1px solid #f3caca; border-radius:6px; color:#444; font-size:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word; max-height:240px; overflow:auto;">${escapeHtml(detailText)}</pre>` : ''}
@@ -1906,7 +1910,7 @@
             });
 
             if (!html) {
-                html = '<div style="color:#666;">无详细错误信息</div>';
+                html = `<div style="color:#666;">${escapeHtml(translateAppText('无详细错误信息'))}</div>`;
             }
 
             document.getElementById('emailFetchErrorContent').innerHTML = html;
@@ -1924,10 +1928,10 @@
 
             if (container.style.display === 'none') {
                 container.style.display = 'block';
-                btn.textContent = '隐藏堆栈/细节';
+                btn.textContent = translateAppText('隐藏堆栈/细节');
             } else {
                 container.style.display = 'none';
-                btn.textContent = '显示堆栈/细节';
+                btn.textContent = translateAppText('显示堆栈/细节');
             }
         }
 
@@ -2009,7 +2013,7 @@ ${details}
             }
 
             if (!group) {
-                nameEl.textContent = '选择分组';
+                nameEl.textContent = translateAppText('选择分组');
                 idBadgeEl.textContent = '';
                 idBadgeEl.style.display = 'none';
                 return;

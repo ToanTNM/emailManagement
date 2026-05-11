@@ -229,7 +229,8 @@
 
                 if (data.success && data.valid) {
                     const previewTimeZone = data.time_zone || selectedTimeZone;
-                    const nextRun = new Date(data.next_run).toLocaleString('zh-CN', {
+                    const locale = typeof getCurrentLocale === 'function' ? getCurrentLocale() : 'en';
+                    const nextRun = new Date(data.next_run).toLocaleString(locale, {
                         timeZone: previewTimeZone,
                         year: 'numeric',
                         month: '2-digit',
@@ -240,8 +241,8 @@
                     resultEl.style.display = 'block';
                     resultEl.innerHTML = `
                         <div style="color: #28a745;">
-                            ✓ 表达式有效<br>
-                            下次执行: ${nextRun}
+                            ✓ ${translateAppText('表达式有效')}<br>
+                            ${translateAppText('下次执行: ')}${nextRun}
                         </div>
                     `;
                 } else {
@@ -256,7 +257,7 @@
                 resultEl.style.display = 'block';
                 resultEl.innerHTML = `
                     <div style="color: #dc3545;">
-                        ✗ 验证失败: ${error.message}
+                        ✗ ${translateAppText(`验证失败: ${error.message}`)}
                     </div>
                 `;
             }
@@ -303,21 +304,21 @@
 
             const lines = [];
             if (settings.webdav_backup_next_run) {
-                lines.push(`下次执行：${formatAbsoluteDateTime(settings.webdav_backup_next_run)}（${settings.app_timezone || getAppTimeZone()}）`);
+                lines.push(`${translateAppText('下次执行：')}${formatAbsoluteDateTime(settings.webdav_backup_next_run)}（${settings.app_timezone || getAppTimeZone()}）`);
             }
             if (settings.webdav_backup_last_run_at) {
-                const statusText = settings.webdav_backup_last_status === 'success' ? '成功' : (settings.webdav_backup_last_status || '未知');
-                lines.push(`上次执行：${formatAbsoluteDateTime(settings.webdav_backup_last_run_at)}，状态：${statusText}`);
+                const statusText = settings.webdav_backup_last_status === 'success' ? translateAppText('成功') : translateAppText(settings.webdav_backup_last_status || '未知');
+                lines.push(`${translateAppText('上次执行：')}${formatAbsoluteDateTime(settings.webdav_backup_last_run_at)}，${translateAppText('状态：')}${statusText}`);
             }
             if (settings.webdav_backup_last_filename) {
-                lines.push(`最近文件：${settings.webdav_backup_last_filename}`);
+                lines.push(`${translateAppText('最近文件：')}${settings.webdav_backup_last_filename}`);
             }
             if (settings.webdav_backup_last_message) {
                 lines.push(settings.webdav_backup_last_message);
             }
 
             statusEl.style.display = 'block';
-            statusEl.textContent = lines.length ? lines.join('\n') : '尚未执行备份。保存设置后，调度器重启时会加载新的 Cron 计划。';
+            statusEl.textContent = lines.length ? lines.join('\n') : translateAppText('尚未执行备份。保存设置后，调度器重启时会加载新的 Cron 计划。');
         }
 
         async function selectWebdavBackupCronExample(cronExpr) {
@@ -359,7 +360,8 @@
                 const data = await response.json();
                 if (data.success && data.valid) {
                     const previewTimeZone = data.time_zone || selectedTimeZone;
-                    const nextRun = new Date(data.next_run).toLocaleString('zh-CN', {
+                    const locale = typeof getCurrentLocale === 'function' ? getCurrentLocale() : 'en';
+                    const nextRun = new Date(data.next_run).toLocaleString(locale, {
                         timeZone: previewTimeZone,
                         year: 'numeric',
                         month: '2-digit',
@@ -370,8 +372,8 @@
                     resultEl.style.display = 'block';
                     resultEl.innerHTML = `
                         <div style="color: #28a745;">
-                            ✓ 表达式有效<br>
-                            下次执行: ${nextRun}
+                            ✓ ${translateAppText('表达式有效')}<br>
+                            ${translateAppText('下次执行: ')}${nextRun}
                         </div>
                     `;
                 } else {
@@ -386,7 +388,7 @@
                 resultEl.style.display = 'block';
                 resultEl.innerHTML = `
                     <div style="color: #dc3545;">
-                        ✗ 验证失败: ${error.message}
+                        ✗ ${translateAppText(`验证失败: ${error.message}`)}
                     </div>
                 `;
             }

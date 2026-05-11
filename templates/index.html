@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outlook 邮件管理</title>
+    <title>Outlook Mail Manager</title>
     <link rel="icon" href="{{ url_for('favicon') }}" type="image/svg+xml">
     <!-- DOMPurify for XSS protection -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('bundled_index_css') }}">
 </head>
 
@@ -34,7 +35,7 @@
     <!-- 全屏查看邮件模态框 -->
     <div id="fullscreenEmailModal" class="fullscreen-email-modal" onmousedown="closeFullscreenEmailOnBackdrop(event)">
         <div class="fullscreen-email-header">
-            <div class="fullscreen-email-title" id="fullscreenEmailTitle">邮件详情</div>
+            <div class="fullscreen-email-title" id="fullscreenEmailTitle">Email details</div>
             <button class="fullscreen-close-btn" onclick="closeFullscreenEmail()">×</button>
         </div>
         <div class="fullscreen-email-content" id="fullscreenEmailContent">

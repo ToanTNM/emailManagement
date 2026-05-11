@@ -17,6 +17,7 @@
 
                 const now = new Date();
                 const timeZone = getAppTimeZone();
+                const locale = typeof getCurrentLocale === 'function' ? getCurrentLocale() : 'en';
                 const dateKeyFormatter = new Intl.DateTimeFormat('en-CA', {
                     timeZone,
                     year: 'numeric',
@@ -26,18 +27,18 @@
                 const isToday = dateKeyFormatter.format(date) === dateKeyFormatter.format(now);
 
                 if (isToday) {
-                    return '今天 ' + date.toLocaleTimeString('zh-CN', {
+                    return `${translateAppText('今天')} ` + date.toLocaleTimeString(locale, {
                         timeZone,
                         hour: '2-digit',
                         minute: '2-digit'
                     });
                 } else {
-                    return date.toLocaleDateString('zh-CN', {
+                    return date.toLocaleDateString(locale, {
                         timeZone,
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                    }) + ' ' + date.toLocaleTimeString('zh-CN', {
+                    }) + ' ' + date.toLocaleTimeString(locale, {
                         timeZone,
                         hour: '2-digit',
                         minute: '2-digit'

@@ -23,7 +23,7 @@
             const folderTabs = document.querySelectorAll('.folder-tab');
             if (refreshBtn) {
                 refreshBtn.disabled = true;
-                refreshBtn.textContent = '获取中...';
+                refreshBtn.textContent = translateAppText('获取中...');
             }
             folderTabs.forEach(tab => tab.disabled = true);
 
@@ -39,7 +39,7 @@
                     `/api/emails/${encodeURIComponent(email)}?method=${currentMethod}&folder=${currentFolder}&skip=0&top=20`,
                     {
                         timeoutMs: EMAIL_LIST_REQUEST_TIMEOUT_MS,
-                        timeoutMessage: '获取邮件超时，请检查网络、代理或账号配置后重试'
+                        timeoutMessage: translateAppText('获取邮件超时，请检查网络、代理或账号配置后重试')
                     }
                 );
                 const data = await response.json();
@@ -82,7 +82,7 @@
                     }
                     container.innerHTML = renderEmptyStateMarkup(
                         '⚠️',
-                        '获取邮件失败，<a href="javascript:void(0)" onclick="showEmailFetchErrorModal(window._lastFetchErrorDetails)" style="color:#409eff;text-decoration:underline;">点击查看详情</a>',
+                        translateAppText('获取邮件失败，<a href="javascript:void(0)" onclick="showEmailFetchErrorModal(window._lastFetchErrorDetails)" style="color:#409eff;text-decoration:underline;">点击查看详情</a>'),
                         {
                             allowHtml: true,
                             onAction: 'refreshEmails()',
@@ -93,8 +93,8 @@
                 }
             } catch (error) {
                 const errorMessage = isTimeoutAbortError(error)
-                    ? '获取邮件超时，请重试'
-                    : '网络错误，请重试';
+                    ? translateAppText('获取邮件超时，请重试')
+                    : translateAppText('网络错误，请重试');
                 container.innerHTML = renderEmptyStateMarkup('⚠️', errorMessage, {
                     onAction: 'refreshEmails()',
                     actionTitle: '刷新邮件列表'
@@ -103,7 +103,7 @@
                 // 启用按钮
                 if (refreshBtn) {
                     refreshBtn.disabled = false;
-                    refreshBtn.textContent = '获取邮件';
+                    refreshBtn.textContent = translateAppText('获取邮件');
                 }
                 folderTabs.forEach(tab => tab.disabled = false);
             }
@@ -268,17 +268,17 @@
             }
 
             return `
-                <section class="email-attachments" aria-label="邮件附件">
+                <section class="email-attachments" aria-label="${escapeHtml(translateAppText('邮件附件'))}">
                     <div class="email-attachments__header">
                         <div class="email-attachments__summary">
-                            <div class="email-attachments__title">附件</div>
-                            <div class="email-attachments__count">${attachments.length} 个</div>
+                            <div class="email-attachments__title">${escapeHtml(translateAppText('附件'))}</div>
+                            <div class="email-attachments__count">${attachments.length} ${escapeHtml(translateAppText('个'))}</div>
                         </div>
                         ${attachments.length > 1 ? `
                             <a class="email-attachments__download-all"
                                href="${buildAllAttachmentsDownloadUrl(email)}"
                                download="attachments.zip"
-                               onclick="downloadEmailAttachmentFile(event, this)">全部下载</a>
+                               onclick="downloadEmailAttachmentFile(event, this)">${escapeHtml(translateAppText('全部下载'))}</a>
                         ` : ''}
                     </div>
                     <div class="email-attachments__list">
@@ -291,12 +291,12 @@
                                 <span class="email-attachment-item__content">
                                     <span class="email-attachment-item__name">${escapeHtml(attachment.name || 'attachment')}</span>
                                     <span class="email-attachment-item__meta">
-                                        ${attachment.is_inline ? '<span class="email-attachment-item__badge">内联</span>' : ''}
+                                        ${attachment.is_inline ? `<span class="email-attachment-item__badge">${escapeHtml(translateAppText('内联'))}</span>` : ''}
                                         <span>${formatAttachmentSize(attachment.size)}</span>
                                         <span>${escapeHtml(attachment.content_type || 'application/octet-stream')}</span>
                                     </span>
                                 </span>
-                                <span class="email-attachment-item__action">下载</span>
+                                <span class="email-attachment-item__action">${escapeHtml(translateAppText('下载'))}</span>
                             </a>
                         `).join('')}
                     </div>
@@ -309,8 +309,8 @@
 
             if (emails.length === 0) {
                 const emptyStateText = isTempEmailGroup
-                    ? '暂无邮件'
-                    : `${getFolderDisplayName(currentFolder)}为空`;
+                    ? translateAppText('暂无邮件')
+                    : `${getFolderDisplayName(currentFolder)} ${translateAppText('为空')}`;
                 container.innerHTML = renderEmptyStateMarkup('📭', emptyStateText, {
                     onAction: 'refreshEmails()',
                     actionTitle: '刷新邮件列表'
@@ -340,18 +340,18 @@
                     <div class="email-body">
                         <div class="email-top-row">
                             <div class="email-top-main">
-                                ${email.is_read === false ? '<span class="email-unread-dot" title="未读" aria-label="未读"></span>' : ''}
+                                ${email.is_read === false ? `<span class="email-unread-dot" title="${escapeHtml(translateAppText('未读'))}" aria-label="${escapeHtml(translateAppText('未读'))}"></span>` : ''}
                                 <div class="email-sender-block">
-                                    <div class="email-from" title="${escapeHtml(email.from || '未知发件人')}">${escapeHtml(email.from || '未知发件人')}</div>
+                                    <div class="email-from" title="${escapeHtml(email.from || translateAppText('未知发件人'))}">${escapeHtml(email.from || translateAppText('未知发件人'))}</div>
                                     ${recipientDisplayLabel ? `<div class="email-recipient" title="${escapeHtml(recipientDisplayLabel)}">${escapeHtml(recipientDisplayLabel)}</div>` : ''}
                                 </div>
-                                ${hasAttachments ? '<span class="email-attachment-indicator" title="含附件" aria-label="含附件">📎</span>' : ''}
+                                ${hasAttachments ? `<span class="email-attachment-indicator" title="${escapeHtml(translateAppText('含附件'))}" aria-label="${escapeHtml(translateAppText('含附件'))}">📎</span>` : ''}
                                 ${sourceLabel ? `<span class="email-folder-badge email-folder-badge--${escapeHtml(String(email.folder || '').toLowerCase())}">${escapeHtml(sourceLabel)}</span>` : ''}
                             </div>
                             <div class="email-date">${formatDate(email.date)}</div>
                         </div>
-                        <div class="email-subject">${escapeHtml(email.subject || '无主题')}</div>
-                        <div class="email-preview">${escapeHtml((email.body_preview || '').trim() || '暂无预览内容')}</div>
+                        <div class="email-subject">${escapeHtml(email.subject || translateAppText('无主题'))}</div>
+                        <div class="email-preview">${escapeHtml((email.body_preview || '').trim() || translateAppText('暂无预览内容'))}</div>
                     </div>
                 </div>
             `}).join('');
@@ -504,7 +504,7 @@
                 if (markReadBtn) {
                     markReadBtn.disabled = false;
                     markReadBtn.dataset.loading = 'false';
-                    markReadBtn.textContent = '设为已读';
+                    markReadBtn.textContent = translateAppText('设为已读');
                     markReadBtn.title = '';
                 }
                 return;
@@ -521,11 +521,11 @@
                 if (markReadBtn) {
                     const isMarking = markReadBtn.dataset.loading === 'true';
                     markReadBtn.disabled = unreadSelectedCount === 0 || isMarking;
-                    markReadBtn.title = unreadSelectedCount === 0 ? '所选邮件已全部为已读' : '';
+                    markReadBtn.title = unreadSelectedCount === 0 ? translateAppText('所选邮件已全部为已读') : '';
                     if (!isMarking) {
                         markReadBtn.textContent = unreadSelectedCount > 0
-                            ? `设为已读${unreadSelectedCount !== selectedEmails.length ? ` (${unreadSelectedCount})` : ''}`
-                            : '设为已读';
+                            ? `${translateAppText('设为已读')}${unreadSelectedCount !== selectedEmails.length ? ` (${unreadSelectedCount})` : ''}`
+                            : translateAppText('设为已读');
                     }
                 }
             } else {
@@ -534,7 +534,7 @@
                 if (markReadBtn) {
                     markReadBtn.disabled = false;
                     markReadBtn.dataset.loading = 'false';
-                    markReadBtn.textContent = '设为已读';
+                    markReadBtn.textContent = translateAppText('设为已读');
                     markReadBtn.title = '';
                 }
             }
@@ -577,7 +577,7 @@
 
             btn.disabled = true;
             btn.dataset.loading = 'true';
-            btn.textContent = '设置中...';
+            btn.textContent = translateAppText('设置中...');
 
             try {
                 await requestMarkEmailsAsRead(unreadItems);
@@ -643,7 +643,7 @@
                         document.getElementById('emailDetail').innerHTML = `
                             <div class="empty-state">
                                 <div class="empty-state-icon">🗑️</div>
-                                <div class="empty-state-text">邮件已删除</div>
+                                <div class="empty-state-text">${escapeHtml(translateAppText('邮件已删除'))}</div>
                             </div>
                         `;
                         document.getElementById('emailDetailToolbar').style.display = 'none';
@@ -655,7 +655,7 @@
                         showToast(`部分删除失败 (${result.failed_count} 封)`, 'warning');
                     }
                 } else {
-                    showToast('删除失败: ' + (result.error || '未知错误'), 'error');
+                    showToast(`删除失败: ${result.error || translateAppText('未知错误')}`, 'error');
                 }
             } catch (e) {
                 showToast('网络错误', 'error');
@@ -698,7 +698,7 @@
                     `/api/email/${encodeURIComponent(currentAccount)}/${encodeURIComponent(messageId)}?method=${currentMethod}&folder=${requestFolder}`,
                     {
                         timeoutMs: EMAIL_DETAIL_REQUEST_TIMEOUT_MS,
-                        timeoutMessage: '加载邮件详情超时，请稍后重试'
+                        timeoutMessage: translateAppText('加载邮件详情超时，请稍后重试')
                     }
                 );
                 const data = await response.json();
@@ -718,18 +718,18 @@
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-state-icon">⚠️</div>
-                            <div class="empty-state-text">${data.error && data.error.message ? data.error.message : '加载失败'}</div>
+                            <div class="empty-state-text">${escapeHtml(data.error && data.error.message ? translateAppText(data.error.message) : translateAppText('加载失败'))}</div>
                         </div>
                     `;
                 }
             } catch (error) {
                 const errorMessage = isTimeoutAbortError(error)
-                    ? '加载邮件详情超时，请重试'
-                    : '网络错误，请重试';
+                    ? translateAppText('加载邮件详情超时，请重试')
+                    : translateAppText('网络错误，请重试');
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">⚠️</div>
-                        <div class="empty-state-text">${errorMessage}</div>
+                        <div class="empty-state-text">${escapeHtml(errorMessage)}</div>
                     </div>
                 `;
             }
@@ -749,21 +749,21 @@
 
             const detailMetaRows = `
                 <div class="email-detail-meta-row">
-                    <span class="email-detail-meta-label">发件人</span>
+                    <span class="email-detail-meta-label">${escapeHtml(translateAppText('发件人'))}</span>
                     <span class="email-detail-meta-value">${escapeHtml(email.from)}</span>
                 </div>
                 <div class="email-detail-meta-row">
-                    <span class="email-detail-meta-label">收件人</span>
+                    <span class="email-detail-meta-label">${escapeHtml(translateAppText('收件人'))}</span>
                     <span class="email-detail-meta-value">${escapeHtml(email.to || '-')}</span>
                 </div>
                 ${email.cc ? `
                 <div class="email-detail-meta-row">
-                    <span class="email-detail-meta-label">抄送</span>
+                    <span class="email-detail-meta-label">${escapeHtml(translateAppText('抄送'))}</span>
                     <span class="email-detail-meta-value">${escapeHtml(email.cc)}</span>
                 </div>
                 ` : ''}
                 <div class="email-detail-meta-row">
-                    <span class="email-detail-meta-label">时间</span>
+                    <span class="email-detail-meta-label">${escapeHtml(translateAppText('时间'))}</span>
                     <span class="email-detail-meta-value">${formatDate(email.date)}</span>
                 </div>
             `;
@@ -771,14 +771,14 @@
             const detailHeader = compactMobileMeta
                 ? `
                 <div class="email-detail-header email-detail-header--compact">
-                    <div class="email-detail-subject">${escapeHtml(email.subject || '无主题')}</div>
+                    <div class="email-detail-subject">${escapeHtml(email.subject || translateAppText('无主题'))}</div>
                     <div class="email-detail-meta-inline">
-                        <span class="email-detail-meta-inline__from">${escapeHtml(email.from || '未知发件人')}</span>
+                        <span class="email-detail-meta-inline__from">${escapeHtml(email.from || translateAppText('未知发件人'))}</span>
                         <span class="email-detail-meta-inline__dot"></span>
                         <span class="email-detail-meta-inline__time">${formatDate(email.date)}</span>
                     </div>
                     <details class="email-detail-meta-collapsible">
-                        <summary class="email-detail-meta-collapsible__summary">查看邮件信息</summary>
+                        <summary class="email-detail-meta-collapsible__summary">${escapeHtml(translateAppText('查看邮件信息'))}</summary>
                         <div class="email-detail-meta email-detail-meta--compact">
                             ${detailMetaRows}
                         </div>
@@ -787,7 +787,7 @@
                 `
                 : `
                 <div class="email-detail-header">
-                    <div class="email-detail-subject">${escapeHtml(email.subject || '无主题')}</div>
+                    <div class="email-detail-subject">${escapeHtml(email.subject || translateAppText('无主题'))}</div>
                     <div class="email-detail-meta">
                         ${detailMetaRows}
                     </div>
@@ -916,10 +916,10 @@
 
             if (isListVisible) {
                 panel.classList.remove('hidden');
-                toggleText.textContent = '隐藏列表';
+                toggleText.textContent = translateAppText('隐藏列表');
             } else {
                 panel.classList.add('hidden');
-                toggleText.textContent = '显示列表';
+                toggleText.textContent = translateAppText('显示列表');
             }
 
             closeMobilePanels();
@@ -1079,7 +1079,7 @@
         function showEmailList({ scheduleLoadCheck = true } = {}) {
             document.getElementById('emailListPanel').classList.remove('hidden');
             isListVisible = true;
-            document.getElementById('toggleListText').textContent = '隐藏列表';
+            document.getElementById('toggleListText').textContent = translateAppText('隐藏列表');
             closeMobilePanels();
             closeNavbarActionsMenu();
             updateMobileContext();
@@ -1135,7 +1135,10 @@
         function copyCurrentEmail() {
             const emailElement = document.getElementById('currentAccountEmail');
             if (emailElement && emailElement.textContent) {
-                const email = emailElement.textContent.replace(' (临时)', '').trim();
+                const email = emailElement.textContent
+                    .replace(' (临时)', '')
+                    .replace(` (${translateAppText('临时邮箱')})`, '')
+                    .trim();
                 copyEmail(email);
             }
         }

@@ -125,11 +125,12 @@
         }
 
         function appendRefreshRuntimeLog(level, title, detail = '') {
+            const locale = typeof getCurrentLocale === 'function' ? getCurrentLocale() : 'en';
             refreshModalState.runtimeLogs.unshift({
                 level: String(level || 'info').toLowerCase(),
                 title: String(title || '').trim() || '任务更新',
                 detail: String(detail || '').trim(),
-                time: new Date().toLocaleTimeString('zh-CN', {
+                time: new Date().toLocaleTimeString(locale, {
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit',
@@ -310,7 +311,7 @@
             const rowsHtml = refreshModalState.items.map(item => {
                 const isRunning = refreshModalState.currentRefreshingAccountId === item.id;
                 const canRetry = item.last_refresh_status === 'failed' && !isRunning;
-                const groupText = item.group_name || '默认分组';
+                const groupText = item.group_name || translateAppText('默认分组');
                 const refreshTime = item.last_refresh_at ? formatDateTime(item.last_refresh_at) : '-';
                 const remarkHtml = item.remark
                     ? `<div class="refresh-account-remark">${escapeHtml(item.remark)}</div>`
@@ -1095,13 +1096,14 @@
             const minutes = Math.floor(diff / 60000);
             const hours = Math.floor(diff / 3600000);
             const days = Math.floor(diff / 86400000);
+            const locale = typeof getCurrentLocale === 'function' ? getCurrentLocale() : 'en';
 
-            if (minutes < 1) return '刚刚';
-            if (minutes < 60) return `${minutes}分钟前`;
-            if (hours < 24) return `${hours}小时前`;
-            if (days < 7) return `${days}天前`;
+            if (minutes < 1) return translateAppText('刚刚');
+            if (minutes < 60) return locale === 'zh-CN' ? `${minutes}分钟前` : `${minutes} min ago`;
+            if (hours < 24) return locale === 'zh-CN' ? `${hours}小时前` : `${hours} hr ago`;
+            if (days < 7) return locale === 'zh-CN' ? `${days}天前` : `${days} day(s) ago`;
 
-            return date.toLocaleString('zh-CN', {
+            return date.toLocaleString(locale, {
                 timeZone: getAppTimeZone(),
                 year: 'numeric',
                 month: '2-digit',

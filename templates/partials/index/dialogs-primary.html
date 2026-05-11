@@ -261,8 +261,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="hideExportModal()">取消</button>
-                <button class="btn btn-primary" onclick="exportSelectedGroups()">导出</button>
+                <button class="btn btn-secondary" onclick="hideExportModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="exportSelectedGroups()">Export</button>
             </div>
         </div>
     </div>
@@ -271,19 +271,19 @@
     <div class="modal" id="exportVerifyModal" onmousedown="if(event.target === this) hideExportVerifyModal()">
         <div class="modal-content" style="width: 400px;">
             <div class="modal-header">
-                <h3>🔐 安全验证</h3>
+                <h3>🔐 Security verification</h3>
                 <button class="modal-close" onclick="hideExportVerifyModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">请输入登录密码以确认导出操作</label>
-                    <input type="password" class="form-input" id="exportVerifyPassword" placeholder="输入登录密码">
-                    <div class="form-hint" style="color: #dc3545;">导出文件包含敏感信息（Refresh Token），请妥善保管</div>
+                    <label class="form-label">Enter the login password to confirm the export</label>
+                    <input type="password" class="form-input" id="exportVerifyPassword" placeholder="Enter password">
+                    <div class="form-hint" style="color: #dc3545;">The export contains sensitive data, including refresh tokens. Store it securely.</div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="hideExportVerifyModal()">取消</button>
-                <button class="btn btn-primary" onclick="confirmExportVerify()">确认导出</button>
+                <button class="btn btn-secondary" onclick="hideExportVerifyModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmExportVerify()">Confirm export</button>
             </div>
         </div>
     </div>
