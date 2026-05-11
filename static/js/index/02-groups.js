@@ -15,7 +15,7 @@
                     groups = data.groups;
 
                     // 找到临时邮箱分组
-                    const tempGroup = groups.find(g => g.name === '临时邮箱');
+                    const tempGroup = groups.find(g => isTempEmailGroupName(g.name));
                     if (tempGroup) {
                         tempEmailGroupId = tempGroup.id;
                     }
@@ -34,7 +34,7 @@
                             currentGroupId = parseInt(savedGroupId);
                         } else if (groups.length > 0) {
                             // 如果没有缓存，默认选中"临时邮箱"或者首个分组
-                            const tempMatch = groups.find(g => g.name === '临时邮箱');
+                            const tempMatch = groups.find(g => isTempEmailGroupName(g.name));
                             currentGroupId = tempMatch ? tempMatch.id : groups[0].id;
                         }
                     }
@@ -82,8 +82,8 @@
             }
 
             container.innerHTML = groups.map(group => {
-                const isSystem = group.is_system === 1 || group.name === '临时邮箱';
-                const isTempGroup = group.name === '临时邮箱';
+                const isSystem = group.is_system === 1 || isTempEmailGroupName(group.name);
+                const isTempGroup = isTempEmailGroupName(group.name);
                 const isDefault = group.id === 1;
                 const isDragging = groupDragState.isDragging && groupDragState.groupId === group.id;
                 const groupName = normalizeGroupName(group.name);
@@ -114,17 +114,17 @@
         }
 
         function getMovableGroups() {
-            return groups.filter(group => group.name !== '临时邮箱');
+            return groups.filter(group => !isTempEmailGroupName(group.name));
         }
 
         function reorderGroupData(orderIds) {
-            const tempGroups = groups.filter(group => group.name === '临时邮箱');
+            const tempGroups = groups.filter(group => isTempEmailGroupName(group.name));
             const movableMap = new Map(getMovableGroups().map(group => [group.id, group]));
             groups = [...tempGroups, ...orderIds.map(id => movableMap.get(id)).filter(Boolean)];
         }
 
         function getGroupSortPositionCount(editingId = null) {
-            const movableGroups = groups.filter(group => group.name !== '临时邮箱' && group.id !== editingId);
+            const movableGroups = groups.filter(group => !isTempEmailGroupName(group.name) && group.id !== editingId);
             return movableGroups.length + 1;
         }
 
@@ -383,7 +383,7 @@
 
             // 检查是否是临时邮箱分组
             const group = groups.find(g => g.id === groupId);
-            isTempEmailGroup = group && group.name === '临时邮箱';
+            isTempEmailGroup = !!(group && isTempEmailGroupName(group.name));
 
             // 更新分组列表 UI
             document.querySelectorAll('.group-item').forEach(item => {
@@ -780,7 +780,7 @@
             if (!showGroupInfo) return '';
 
             const groupColor = account.group_color || '#666666';
-            const groupName = normalizeGroupName(account.group_name, '默认分组');
+            const groupName = normalizeGroupName(account.group_name, 'Default Group');
             const groupIdBadgeText = formatGroupIdBadgeText(account.group_id);
             return `
                 <div class="account-group-summary" title="所属分组: ${escapeHtml(groupName)}">
@@ -1256,7 +1256,7 @@
                     const currentValue = select.value;
                     // editGroupSelect 和 tokenSaveGroupSelect 过滤掉临时邮箱分组
                     const filteredGroups = (selectId === 'editGroupSelect' || selectId === 'tokenSaveGroupSelect')
-                        ? groups.filter(g => g.name !== '临时邮箱')
+                        ? groups.filter(g => !isTempEmailGroupName(g.name))
                         : groups;
 
                     select.innerHTML = filteredGroups.map(g =>
@@ -1307,7 +1307,7 @@
         function isTempImportGroup() {
             const importSelect = document.getElementById('importGroupSelect');
             const selectedGroup = groups.find(g => g.id === parseInt(importSelect?.value || '0'));
-            return !!(selectedGroup && selectedGroup.name === '临时邮箱');
+            return !!(selectedGroup && isTempEmailGroupName(selectedGroup.name));
         }
 
         function normalizeForwardChannels(rawChannels) {

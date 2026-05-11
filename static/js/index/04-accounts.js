@@ -93,7 +93,7 @@
 
             // 检查是否是临时邮箱分组
             const selectedGroup = groups.find(g => g.id === groupId);
-            const isTempGroup = selectedGroup && selectedGroup.name === '临时邮箱';
+            const isTempGroup = !!(selectedGroup && isTempEmailGroupName(selectedGroup.name));
 
             try {
                 let response;

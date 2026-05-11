@@ -311,7 +311,7 @@
             const rowsHtml = refreshModalState.items.map(item => {
                 const isRunning = refreshModalState.currentRefreshingAccountId === item.id;
                 const canRetry = item.last_refresh_status === 'failed' && !isRunning;
-                const groupText = item.group_name || translateAppText('默认分组');
+                const groupText = item.group_name || 'Default Group';
                 const refreshTime = item.last_refresh_at ? formatDateTime(item.last_refresh_at) : '-';
                 const remarkHtml = item.remark
                     ? `<div class="refresh-account-remark">${escapeHtml(item.remark)}</div>`

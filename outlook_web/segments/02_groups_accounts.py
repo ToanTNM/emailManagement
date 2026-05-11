@@ -23,10 +23,10 @@ def load_groups() -> List[Dict]:
     cursor = db.execute('''
         SELECT * FROM groups
         ORDER BY
-            CASE WHEN name = '临时邮箱' THEN 0 ELSE 1 END,
+            CASE WHEN name IN (?, ?) THEN 0 ELSE 1 END,
             sort_order,
             id
-    ''')
+    ''', (TEMP_EMAIL_GROUP_NAME, LEGACY_TEMP_EMAIL_GROUP_NAME))
     rows = cursor.fetchall()
     return [dict(row) for row in rows]
 
@@ -39,14 +39,23 @@ def get_group_by_id(group_id: int) -> Optional[Dict]:
     return dict(row) if row else None
 
 
+def get_default_group_id(db=None) -> int:
+    database = db or get_db()
+    row = database.execute(
+        'SELECT id FROM groups WHERE name IN (?, ?) ORDER BY id ASC LIMIT 1',
+        (DEFAULT_GROUP_NAME, LEGACY_DEFAULT_GROUP_NAME),
+    ).fetchone()
+    return int(row['id']) if row else 1
+
+
 def get_movable_group_ids(db=None, exclude_group_id: Optional[int] = None) -> List[int]:
     """获取可排序分组 ID 列表（不含临时邮箱）"""
     database = db or get_db()
     query = '''
         SELECT id FROM groups
-        WHERE name != '临时邮箱'
+        WHERE name NOT IN (?, ?)
     '''
-    params = []
+    params = [TEMP_EMAIL_GROUP_NAME, LEGACY_TEMP_EMAIL_GROUP_NAME]
     if exclude_group_id is not None:
         query += ' AND id != ?'
         params.append(exclude_group_id)
@@ -62,7 +71,8 @@ def apply_group_order(group_ids: List[int], db=None) -> None:
         database.execute('UPDATE groups SET sort_order = ? WHERE id = ?', (index, group_id))
 
     temp_group = database.execute(
-        "SELECT id FROM groups WHERE name = '临时邮箱' LIMIT 1"
+        "SELECT id FROM groups WHERE name IN (?, ?) LIMIT 1",
+        (TEMP_EMAIL_GROUP_NAME, LEGACY_TEMP_EMAIL_GROUP_NAME),
     ).fetchone()
     if temp_group:
         database.execute('UPDATE groups SET sort_order = 0 WHERE id = ?', (temp_group['id'],))
@@ -96,7 +106,7 @@ def set_group_position(group_id: int, sort_position: Optional[int], db=None) -> 
     """设置分组在可排序列表中的位置"""
     database = db or get_db()
     group = database.execute('SELECT id, name FROM groups WHERE id = ?', (group_id,)).fetchone()
-    if not group or group['name'] == '临时邮箱':
+    if not group or is_temp_email_group_name(group['name']):
         return False
 
     group_ids = get_movable_group_ids(database, exclude_group_id=group_id)
@@ -154,10 +164,10 @@ def delete_group(group_id: int) -> bool:
     """删除分组（将该分组下的邮箱移到默认分组）"""
     db = get_db()
     try:
-        # 将该分组下的邮箱移到默认分组（id=1）
-        db.execute('UPDATE accounts SET group_id = 1 WHERE group_id = ?', (group_id,))
+        default_group_id = get_default_group_id(db)
+        db.execute('UPDATE accounts SET group_id = ? WHERE group_id = ?', (default_group_id, group_id))
         # 删除分组（不能删除默认分组）
-        if group_id != 1:
+        if group_id != default_group_id:
             db.execute('DELETE FROM groups WHERE id = ?', (group_id,))
         normalize_group_order(db)
         db.commit()
@@ -619,16 +629,16 @@ def validate_account_aliases(account_id: int, primary_email: str, aliases: List[
         seen.add(normalized)
 
         if normalized == primary_normalized:
-            errors.append(f'别名 {normalized} 不能与主邮箱相同')
+            errors.append(f'Alias {normalized} cannot match the primary email')
             continue
         if email_exists_as_primary(normalized, exclude_account_id=account_id):
-            errors.append(f'别名 {normalized} 已被其他主邮箱占用')
+            errors.append(f'Alias {normalized} is already used by another primary account')
             continue
         if email_exists_as_alias(normalized, exclude_account_id=account_id):
-            errors.append(f'别名 {normalized} 已被其他账号使用')
+            errors.append(f'Alias {normalized} is already used by another account')
             continue
         if email_exists_as_temp(normalized):
-            errors.append(f'别名 {normalized} 与临时邮箱地址冲突')
+            errors.append(f'Alias {normalized} conflicts with a temp email address')
             continue
 
         cleaned.append(normalized)
@@ -654,7 +664,7 @@ def replace_account_aliases(account_id: int, primary_email: str, aliases: List[s
             )
         return True, cleaned_aliases, []
     except sqlite3.IntegrityError:
-        return False, cleaned_aliases, ['别名保存失败，可能存在重复或冲突']
+        return False, cleaned_aliases, ['Failed to save aliases. Duplicates or conflicts may exist']
 
 
 def resolve_account_record(row: sqlite3.Row, matched_alias: str = '',
@@ -870,7 +880,7 @@ def serialize_account_summary(account: Dict[str, Any], last_refresh_log: Optiona
         'aliases': account.get('aliases', []),
         'alias_count': account.get('alias_count', 0),
         'group_id': account.get('group_id'),
-        'group_name': account.get('group_name', '默认分组'),
+        'group_name': normalize_system_group_name(account.get('group_name', DEFAULT_GROUP_NAME)) or DEFAULT_GROUP_NAME,
         'group_color': account.get('group_color', '#666666'),
         'sort_order': normalize_account_sort_order(account.get('sort_order', 0)),
         'remark': account.get('remark', ''),
@@ -1437,7 +1447,7 @@ def start_project(
     db = get_db()
     normalized_key = normalize_project_key(project_key)
     if not normalized_key:
-        raise ValueError('project_key 不能为空')
+        raise ValueError('project_key is required')
 
     clean_name = sanitize_input((name or '').strip(), max_length=100) if name is not None else ''
     clean_description = sanitize_input(description or '', max_length=500) if description is not None else ''
@@ -1573,11 +1583,11 @@ def recycle_expired_project_claims(db=None) -> int:
 def claim_project_account(project_key: str, caller_id: str, task_id: str, lease_seconds: int = 600) -> Optional[Dict[str, Any]]:
     normalized_key = normalize_project_key(project_key)
     if not normalized_key:
-        raise ValueError('project_key 不能为空')
+        raise ValueError('project_key is required')
     if not str(caller_id or '').strip():
-        raise ValueError('caller_id 不能为空')
+        raise ValueError('caller_id is required')
     if not str(task_id or '').strip():
-        raise ValueError('task_id 不能为空')
+        raise ValueError('task_id is required')
 
     try:
         lease_seconds = int(lease_seconds or 600)
@@ -2168,7 +2178,7 @@ def delete_accounts_by_ids(account_ids: List[int]) -> Dict[str, Any]:
     normalized_ids = normalize_account_ids(account_ids)
 
     if not normalized_ids:
-        return {'success': False, 'error': '请选择要删除的账号'}
+        return {'success': False, 'error': 'Please select accounts to delete'}
 
     placeholders = ','.join('?' * len(normalized_ids))
     rows = db.execute(f'''
@@ -2179,7 +2189,7 @@ def delete_accounts_by_ids(account_ids: List[int]) -> Dict[str, Any]:
     ''', normalized_ids).fetchall()
 
     if not rows:
-        return {'success': False, 'error': '未找到可删除的账号'}
+        return {'success': False, 'error': 'No matching accounts were found to delete'}
 
     existing_ids = [row['id'] for row in rows]
     deleted_accounts = [{'id': row['id'], 'email': row['email']} for row in rows]
@@ -2207,7 +2217,7 @@ def update_accounts_forwarding_by_ids(account_ids: List[int], forward_enabled: b
     normalized_ids = normalize_account_ids(account_ids)
 
     if not normalized_ids:
-        return {'success': False, 'error': '请选择要修改的账号'}
+        return {'success': False, 'error': 'Please select accounts to update'}
 
     placeholders = ','.join('?' * len(normalized_ids))
     rows = db.execute(
@@ -2221,7 +2231,7 @@ def update_accounts_forwarding_by_ids(account_ids: List[int], forward_enabled: b
     ).fetchall()
 
     if not rows:
-        return {'success': False, 'error': '未找到可修改的账号'}
+        return {'success': False, 'error': 'No matching accounts were found to update'}
 
     target_value = 1 if forward_enabled else 0
     existing_ids = [row['id'] for row in rows]

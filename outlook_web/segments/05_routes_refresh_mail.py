@@ -16,9 +16,9 @@ if TYPE_CHECKING:
 TOKEN_REFRESH_SCOPE_KEY = 'all_outlook'
 VALID_ACCOUNT_REFRESH_STATUSES = {'success', 'failed', 'never'}
 VALID_REFRESH_STATUS_FILTERS = {'all', 'success', 'failed', 'never'}
-TOKEN_REFRESH_CONFLICT_MESSAGE = '已有 Token 全量刷新任务在执行，请稍后再试'
-TOKEN_REFRESH_STOP_REQUESTED_MESSAGE = '已请求停止，当前账号处理完成后会结束任务'
-TOKEN_REFRESH_STOPPED_MESSAGE = '已手动停止全量刷新任务'
+TOKEN_REFRESH_CONFLICT_MESSAGE = 'A full token refresh task is already running. Please try again later'
+TOKEN_REFRESH_STOP_REQUESTED_MESSAGE = 'Stop requested. The task will finish after the current account is processed'
+TOKEN_REFRESH_STOPPED_MESSAGE = 'The full refresh task was stopped manually'
 SELECTED_REFRESH_TASK_TTL_SECONDS = 300
 token_refresh_stop_event = threading.Event()
 selected_refresh_tasks: Dict[str, Dict[str, Any]] = {}
@@ -337,7 +337,7 @@ def release_token_refresh_run_lock(acquired: bool) -> None:
 
 def build_refresh_error_summary(failed_list: List[Dict[str, Any]], fallback_message: str = '') -> str:
     parts = [
-        f"{item.get('email') or 'unknown'}: {item.get('error') or '未知错误'}"
+        f"{item.get('email') or 'unknown'}: {item.get('error') or 'Unknown error'}"
         for item in failed_list[:5]
     ]
     if not parts and fallback_message:
@@ -421,7 +421,7 @@ def finalize_aborted_full_refresh(conn, snapshot_trigger_type: str, log_refresh_
                                   failed_list: List[Dict[str, Any]], current_account=None,
                                   current_account_counted: bool = False,
                                   error: Exception | None = None) -> Dict[str, Any]:
-    failure_message = sanitize_error_details(str(error or '未知错误')) or '未知错误'
+    failure_message = sanitize_error_details(str(error or 'Unknown error')) or 'Unknown error'
     active_total = max(0, int(total or 0))
 
     if current_account is not None and not current_account_counted:
@@ -480,7 +480,7 @@ def finalize_aborted_retry_refresh(conn, log_refresh_type: str,
                                    failed_list: List[Dict[str, Any]], current_account=None,
                                    current_account_counted: bool = False,
                                    error: Exception | None = None) -> Dict[str, Any]:
-    failure_message = sanitize_error_details(str(error or '未知错误')) or '未知错误'
+    failure_message = sanitize_error_details(str(error or 'Unknown error')) or 'Unknown error'
     active_total = max(0, int(total or 0))
 
     if current_account is not None and not current_account_counted:
@@ -654,10 +654,10 @@ def test_refresh_token(client_id: str, refresh_token: str, proxy_url: str = None
                 error_data = res.json()
             except Exception:
                 error_data = {}
-            error_msg = error_data.get('error_description', error_data.get('error', '未知错误'))
+            error_msg = error_data.get('error_description', error_data.get('error', 'Unknown error'))
             return False, error_msg, ''
     except Exception as e:
-        return False, f"请求异常: {str(e)}", ''
+        return False, f"Request failed: {str(e)}", ''
 
 
 def refresh_outlook_account_token(account: sqlite3.Row, refresh_type: str = 'manual',
@@ -687,14 +687,14 @@ def refresh_outlook_account_token(account: sqlite3.Row, refresh_type: str = 'man
     try:
         refresh_token = decrypt_data(encrypted_refresh_token) if encrypted_refresh_token else encrypted_refresh_token
     except Exception as e:
-        error_msg = sanitize_error_details(f"解密 token 失败: {str(e)}")
+        error_msg = sanitize_error_details(f"Failed to decrypt token: {str(e)}")
         log_refresh_result(account_id, account_email, refresh_type, 'failed', error_msg, db_conn=db_conn)
         return {
             'success': False,
             'error_message': error_msg,
             'error_payload': build_error_payload(
                 "TOKEN_DECRYPT_FAILED",
-                "Token 解密失败",
+                "Failed to decrypt token",
                 "DecryptionError",
                 500,
                 error_msg
@@ -723,17 +723,17 @@ def refresh_outlook_account_token(account: sqlite3.Row, refresh_type: str = 'man
     )
 
     if success:
-        return {'success': True, 'message': 'Token 刷新成功'}
+        return {'success': True, 'message': 'Token refreshed successfully'}
 
     return {
         'success': False,
-        'error_message': sanitized_error or '未知错误',
+        'error_message': sanitized_error or 'Unknown error',
         'error_payload': build_error_payload(
             "TOKEN_REFRESH_FAILED",
-            "Token 刷新失败",
+            "Token refresh failed",
             "RefreshTokenError",
             400,
-            sanitized_error or "未知错误"
+            sanitized_error or "Unknown error"
         )
     }
 
@@ -749,7 +749,7 @@ def api_refresh_account(account_id):
     if not account:
         error_payload = build_error_payload(
             "ACCOUNT_NOT_FOUND",
-            "账号不存在",
+            "Account not found",
             "NotFoundError",
             404,
             f"account_id={account_id}"
@@ -757,7 +757,7 @@ def api_refresh_account(account_id):
         return jsonify({'success': False, 'error': error_payload})
 
     if (account['account_type'] or '').strip().lower() == 'imap':
-        return jsonify({'success': False, 'error': 'IMAP 账号无需刷新 Token'})
+        return jsonify({'success': False, 'error': 'IMAP accounts do not require token refresh'})
 
     cleanup_refresh_logs()
     result = refresh_outlook_account_token(account, 'manual')
@@ -774,7 +774,7 @@ def api_refresh_selected_accounts():
     raw_account_ids = data.get('account_ids') or []
 
     if not isinstance(raw_account_ids, list):
-        return jsonify({'success': False, 'error': '账号列表格式错误'})
+        return jsonify({'success': False, 'error': 'Invalid account_ids payload'})
 
     account_ids = []
     seen_ids = set()
@@ -789,7 +789,7 @@ def api_refresh_selected_accounts():
         account_ids.append(normalized_id)
 
     if not account_ids:
-        return jsonify({'success': False, 'error': '请选择要刷新的账号'})
+        return jsonify({'success': False, 'error': 'Please select accounts to refresh'})
 
     cleanup_refresh_logs()
     db = get_db()
@@ -814,8 +814,8 @@ def api_refresh_selected_accounts():
         skipped_count += 1
         skipped_list.append({
             'id': missing_id,
-            'email': f'账号 #{missing_id}',
-            'reason': '账号不存在或已删除'
+            'email': f'Account #{missing_id}',
+            'reason': 'Account not found or already deleted'
         })
 
     for account in accounts:
@@ -824,7 +824,7 @@ def api_refresh_selected_accounts():
             skipped_list.append({
                 'id': account['id'],
                 'email': account['email'],
-                'reason': 'IMAP 账号无需刷新 Token'
+                'reason': 'IMAP accounts do not require token refresh'
             })
             continue
 
@@ -837,20 +837,20 @@ def api_refresh_selected_accounts():
         failed_list.append({
             'id': account['id'],
             'email': account['email'],
-            'error': result.get('error_message') or '未知错误'
+            'error': result.get('error_message') or 'Unknown error'
         })
 
     requested_count = len(account_ids)
     processed_count = success_count + failed_count
-    message_parts = [f'成功 {success_count}']
+    message_parts = [f'succeeded: {success_count}']
     if failed_count:
-        message_parts.append(f'失败 {failed_count}')
+        message_parts.append(f'failed: {failed_count}')
     if skipped_count:
-        message_parts.append(f'跳过 {skipped_count}')
+        message_parts.append(f'skipped: {skipped_count}')
 
     return jsonify({
         'success': True,
-        'message': f'已处理 {requested_count} 个账号，' + '，'.join(message_parts),
+        'message': f'Processed {requested_count} accounts: ' + ', '.join(message_parts),
         'requested_count': requested_count,
         'processed_count': processed_count,
         'success_count': success_count,
@@ -994,7 +994,7 @@ def run_full_refresh(snapshot_trigger_type: str, log_refresh_type: str,
                 failed_list.append({
                     'id': account['id'],
                     'email': account['email'],
-                    'error': result.get('error_message') or '未知错误',
+                    'error': result.get('error_message') or 'Unknown error',
                 })
             current_account_counted = True
             if progress_callback:
@@ -1214,7 +1214,7 @@ def stream_full_refresh_events(snapshot_trigger_type: str, log_refresh_type: str
             )
             yield f"data: {json.dumps(error_payload)}\n\n"
         else:
-            failure_message = sanitize_error_details(str(exc)) or '未知错误'
+            failure_message = sanitize_error_details(str(exc)) or 'Unknown error'
             yield f"data: {json.dumps({'type': 'error', 'message': failure_message, 'refresh_type': snapshot_trigger_type})}\n\n"
     finally:
         if conn is not None:
@@ -1273,7 +1273,7 @@ def stream_failed_refresh_events():
                 failed_list.append({
                     'id': account['id'],
                     'email': account['email'],
-                    'error': result.get('error_message') or '未知错误',
+                    'error': result.get('error_message') or 'Unknown error',
                 })
             current_account_counted = True
 
@@ -1309,7 +1309,7 @@ def stream_failed_refresh_events():
             )
             yield f"data: {json.dumps(error_payload)}\n\n"
         else:
-            failure_message = sanitize_error_details(str(exc)) or '未知错误'
+            failure_message = sanitize_error_details(str(exc)) or 'Unknown error'
             yield f"data: {json.dumps({'type': 'error', 'message': failure_message, 'refresh_type': 'retry_failed'})}\n\n"
     finally:
         if conn is not None:
@@ -1388,7 +1388,7 @@ def stream_selected_refresh_task_events(task_id: str):
     if account_ids is None:
         payload = {
             'type': 'error',
-            'message': '刷新任务不存在或已过期',
+            'message': 'Refresh task does not exist or has expired',
             'refresh_type': 'manual_selected',
         }
         yield f"data: {json.dumps(payload)}\n\n"
@@ -1412,7 +1412,7 @@ def stream_selected_refresh_events(account_ids: List[int]):
     current_account_counted = False
 
     if not account_ids:
-        yield f"data: {json.dumps({'type': 'error', 'message': '请选择要刷新的账号', 'refresh_type': 'manual_selected'})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'message': 'Please select accounts to refresh', 'refresh_type': 'manual_selected'})}\n\n"
         return
 
     try:
@@ -1451,7 +1451,7 @@ def stream_selected_refresh_events(account_ids: List[int]):
                 failed_list.append({
                     'id': account['id'],
                     'email': account['email'],
-                    'error': result.get('error_message') or '未知错误',
+                    'error': result.get('error_message') or 'Unknown error',
                 })
             current_account_counted = True
 
@@ -1533,7 +1533,7 @@ def api_create_refresh_selected_accounts_stream_task():
     data = request.get_json(silent=True) or {}
     account_ids = normalize_refresh_account_ids(data.get('account_ids') or [])
     if not account_ids:
-        return jsonify({'success': False, 'error': '请选择要刷新的账号'})
+        return jsonify({'success': False, 'error': 'Please select accounts to refresh'})
 
     task_id = create_selected_refresh_task(account_ids)
     return jsonify({
@@ -1578,7 +1578,7 @@ def api_refresh_failed_accounts():
             failed_list.append({
                 'id': account['id'],
                 'email': account['email'],
-                'error': result.get('error_message') or '未知错误'
+                'error': result.get('error_message') or 'Unknown error'
             })
 
     return jsonify({
@@ -1611,7 +1611,7 @@ def api_trigger_scheduled_refresh():
         if datetime.now() < next_refresh_time:
             return jsonify({
                 'success': False,
-                'message': f'距离上次刷新未满 {refresh_interval_days} 天，下次刷新时间：{next_refresh_time.strftime("%Y-%m-%d %H:%M:%S")}',
+                'message': f'Less than {refresh_interval_days} days have passed since the last refresh. Next refresh time: {next_refresh_time.strftime("%Y-%m-%d %H:%M:%S")}',
                 'last_refresh': last_refresh,
                 'next_refresh': next_refresh_time.isoformat()
             })
@@ -1630,7 +1630,7 @@ def api_stop_full_refresh():
         clear_token_refresh_stop_request()
         return jsonify({
             'success': False,
-            'message': '当前没有进行中的全量刷新任务'
+            'message': 'There is no full refresh task currently running'
         }), 409
 
     request_token_refresh_stop()
@@ -1809,7 +1809,7 @@ def api_get_account_forwarding_logs(account_id):
     db = get_db()
     account = get_account_by_id(account_id)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'}), 404
+        return jsonify({'success': False, 'error': 'Account not found'}), 404
     limit = int(request.args.get('limit', 100))
     offset = int(request.args.get('offset', 0))
     failed_only = str(request.args.get('failed_only', '')).strip().lower() in ('1', 'true', 'yes', 'on')
@@ -1894,7 +1894,7 @@ def delete_emails_graph(client_id: str, refresh_token: str, message_ids: List[st
     """通过 Graph API 批量删除邮件（永久删除）"""
     access_token = get_access_token_graph(client_id, refresh_token, proxy_url, fallback_proxy_urls)
     if not access_token:
-        return {"success": False, "error": "获取 Access Token 失败"}
+        return {"success": False, "error": "Failed to obtain Access Token"}
 
     headers = {
         'Authorization': f'Bearer {access_token}',
@@ -1963,7 +1963,7 @@ def delete_emails_imap(email_addr: str, client_id: str, refresh_token: str, mess
     """通过 IMAP 删除邮件（永久删除）"""
     access_token = get_access_token_graph(client_id, refresh_token, proxy_url, fallback_proxy_urls)
     if not access_token:
-        return {"success": False, "error": "获取 Access Token 失败"}
+        return {"success": False, "error": "Failed to obtain Access Token"}
         
     try:
         # 生成 OAuth2 认证字符串
@@ -1982,7 +1982,7 @@ def delete_emails_imap(email_addr: str, client_id: str, refresh_token: str, mess
         # 这里暂时返回不支持，或仅做简单的尝试（如果 ID 恰好是 UID）
         # 但通常 Graph ID 不是 UID。
         
-        return {"success": False, "error": "IMAP 删除暂不支持 (ID 格式不兼容)"}
+        return {"success": False, "error": "IMAP bulk delete is not supported yet (ID format is incompatible)"}
         
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -2116,7 +2116,7 @@ def merge_folder_results(results: Dict[str, Dict[str, Any]], skip: int, top: int
         details = {folder: result.get('error') for folder, result in results.items()}
         return {
             'success': False,
-            'error': '无法获取邮件，所有方式均失败',
+            'error': 'Failed to fetch emails. All methods failed',
             'details': details
         }
 
@@ -2175,7 +2175,7 @@ def fetch_account_folder_emails(account: Dict[str, Any], folder: str, skip: int,
     if folder_name not in VALID_MAIL_FOLDERS or folder_name == 'all':
         return {
             'success': False,
-            'error': f'folder 参数无效，支持: {", ".join(sorted(VALID_MAIL_FOLDERS - {"all"} | {"all"}))}'
+            'error': f'Invalid folder parameter. Supported values: {", ".join(sorted(VALID_MAIL_FOLDERS - {"all"} | {"all"}))}'
         }
 
     if account.get('account_type') == 'imap':
@@ -2200,7 +2200,7 @@ def fetch_account_folder_emails(account: Dict[str, Any], folder: str, skip: int,
             }
         return {
             'success': False,
-            'error': result.get('error', '获取邮件失败'),
+            'error': result.get('error', 'Failed to fetch emails'),
             'details': {'imap_generic': result.get('error')}
         }
 
@@ -2227,9 +2227,9 @@ def fetch_account_folder_emails(account: Dict[str, Any], folder: str, skip: int,
     all_errors['graph'] = graph_error
     if is_transport_error_payload(graph_error):
         connection_error_message = (
-            '代理连接失败或请求超时，请检查分组代理设置'
+            'Proxy connection failed or timed out. Please check the group proxy settings'
             if proxy_url
-            else '连接 Microsoft 服务失败或超时，请检查服务器网络、DNS 或上游访问能力'
+            else 'Failed to connect to Microsoft services or the request timed out. Please check server networking, DNS, or upstream access'
         )
         return {
             'success': False,
@@ -2281,7 +2281,7 @@ def fetch_account_folder_emails(account: Dict[str, Any], folder: str, skip: int,
 
     return {
         'success': False,
-        'error': '无法获取邮件，所有方式均失败',
+        'error': 'Failed to fetch emails. All methods failed',
         'details': all_errors
     }
 
@@ -2293,7 +2293,7 @@ def fetch_account_emails(account: Dict[str, Any], folder: str, skip: int, top: i
     if folder_name not in VALID_MAIL_FOLDERS:
         return {
             'success': False,
-            'error': f'folder 参数无效，支持: {", ".join(sorted(VALID_MAIL_FOLDERS))}'
+            'error': f'Invalid folder parameter. Supported values: {", ".join(sorted(VALID_MAIL_FOLDERS))}'
         }
 
     if folder_name == 'all':
@@ -2321,11 +2321,11 @@ def fetch_account_emails(account: Dict[str, Any], folder: str, skip: int, top: i
                         results[folder_job] = future.result()
                     except Exception as exc:
                         results[folder_job] = {
-                            'success': False,
-                            'error': build_error_payload(
-                                'EMAIL_FETCH_FAILED',
-                                '获取邮件失败，请检查账号配置',
-                                type(exc).__name__,
+                'success': False,
+                'error': build_error_payload(
+                    'EMAIL_FETCH_FAILED',
+                    'Failed to fetch emails. Please check the account configuration',
+                    type(exc).__name__,
                                 500,
                                 str(exc)
                             )
@@ -2336,9 +2336,9 @@ def fetch_account_emails(account: Dict[str, Any], folder: str, skip: int, top: i
                 results[folder_job] = {
                     'success': False,
                     'error': build_error_payload(
-                        'EMAIL_FETCH_TIMEOUT',
-                        '获取邮件超时，请稍后重试',
-                        'TimeoutError',
+                    'EMAIL_FETCH_TIMEOUT',
+                    'Email fetch timed out. Please try again later',
+                    'TimeoutError',
                         504,
                         f'folder={folder_job}, timeout={MAIL_FETCH_OVERALL_TIMEOUT}s'
                     )
@@ -2364,7 +2364,7 @@ def api_get_emails(email_addr):
     if not account:
         error_payload = build_error_payload(
             "ACCOUNT_NOT_FOUND",
-            "账号不存在",
+            "Account not found",
             "NotFoundError",
             404,
             f"email={email_addr}"
@@ -2392,11 +2392,11 @@ def api_mark_emails_read():
 
     items = normalize_email_action_items(raw_items, fallback_folder)
     if not email_addr or not items:
-        return jsonify({'success': False, 'error': '参数不完整'})
+        return jsonify({'success': False, 'error': 'Missing required parameters'})
 
     account = get_account_by_email(email_addr)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'})
+        return jsonify({'success': False, 'error': 'Account not found'})
 
     proxy_url = get_account_proxy_url(account)
     fallback_proxy_urls = get_account_proxy_failover_urls(account)
@@ -2469,18 +2469,18 @@ def api_delete_emails():
     message_ids = data.get('ids', [])
     
     if not email_addr or not message_ids:
-        return jsonify({'success': False, 'error': '参数不完整'})
+        return jsonify({'success': False, 'error': 'Missing required parameters'})
 
     account = get_account_by_email(email_addr)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'})
+        return jsonify({'success': False, 'error': 'Account not found'})
 
     proxy_url = get_account_proxy_url(account)
     fallback_proxy_urls = get_account_proxy_failover_urls(account)
 
     # 1. 优先尝试 Graph API
     if account.get('account_type') == 'imap':
-        return jsonify({'success': False, 'error': 'IMAP 账号暂不支持批量删除邮件'})
+        return jsonify({'success': False, 'error': 'IMAP accounts do not support bulk email deletion yet'})
 
     graph_res = delete_emails_graph(account['client_id'], account['refresh_token'], message_ids, proxy_url, fallback_proxy_urls)
     if graph_res['success']:
@@ -2529,7 +2529,7 @@ def api_get_email_detail(email_addr, message_id):
     account = get_account_by_email(email_addr)
 
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'})
+        return jsonify({'success': False, 'error': 'Account not found'})
 
     method = request.args.get('method', 'graph')
     folder = normalize_folder_name(request.args.get('folder', 'inbox'))
@@ -2549,7 +2549,7 @@ def api_get_email_detail(email_addr, message_id):
         )
         if detail_result.get('success'):
             return jsonify(detail_result)
-        return jsonify({'success': False, 'error': detail_result.get('error', '获取邮件详情失败')})
+        return jsonify({'success': False, 'error': detail_result.get('error', 'Failed to fetch email details')})
 
     if method == 'graph':
         detail = get_email_detail_graph(
@@ -2597,7 +2597,7 @@ def api_get_email_detail(email_addr, message_id):
     if detail:
         return jsonify({'success': True, 'email': detail})
 
-    return jsonify({'success': False, 'error': '获取邮件详情失败'})
+    return jsonify({'success': False, 'error': 'Failed to fetch email details'})
 
 
 def download_email_attachment_for_account(account, method, message_id, attachment_id, folder, proxy_url, fallback_proxy_urls):
@@ -2650,7 +2650,7 @@ def get_email_attachment_metadata_for_download(account, method, message_id, fold
         )
         if detail_result.get('success'):
             return {'success': True, 'attachments': detail_result.get('email', {}).get('attachments', [])}
-        return {'success': False, 'error': detail_result.get('error', '获取附件列表失败')}
+        return {'success': False, 'error': detail_result.get('error', 'Failed to fetch attachment list')}
 
     if method == 'graph':
         attachments = get_email_attachments_graph(
@@ -2661,7 +2661,7 @@ def get_email_attachment_metadata_for_download(account, method, message_id, fold
             fallback_proxy_urls,
         )
         if attachments is None:
-            return {'success': False, 'error': '获取附件列表失败'}
+            return {'success': False, 'error': 'Failed to fetch attachment list'}
         return {'success': True, 'attachments': attachments}
 
     detail = get_email_detail_imap(
@@ -2675,7 +2675,7 @@ def get_email_attachment_metadata_for_download(account, method, message_id, fold
     )
     if detail:
         return {'success': True, 'attachments': detail.get('attachments', [])}
-    return {'success': False, 'error': '获取附件列表失败'}
+    return {'success': False, 'error': 'Failed to fetch attachment list'}
 
 
 def build_zip_attachment_name(filename, used_names):
@@ -2743,7 +2743,7 @@ def drain_streaming_zip_buffer(zip_buffer):
 def stringify_attachment_download_error(error):
     if isinstance(error, dict):
         return str(error.get('message') or error.get('code') or error)
-    return str(error or '获取附件失败')
+    return str(error or 'Failed to fetch attachment')
 
 
 def stream_email_attachments_zip(account, method, message_id, attachments, folder, proxy_url, fallback_proxy_urls):
@@ -2803,7 +2803,7 @@ def api_download_all_email_attachments(email_addr, message_id):
     """打包下载邮件所有附件"""
     account = get_account_by_email(email_addr)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'})
+        return jsonify({'success': False, 'error': 'Account not found'})
 
     method = request.args.get('method', 'graph')
     folder = normalize_folder_name(request.args.get('folder', 'inbox'))
@@ -2818,11 +2818,11 @@ def api_download_all_email_attachments(email_addr, message_id):
         fallback_proxy_urls,
     )
     if not metadata_result.get('success'):
-        return jsonify({'success': False, 'error': metadata_result.get('error', '获取附件列表失败')})
+        return jsonify({'success': False, 'error': metadata_result.get('error', 'Failed to fetch attachment list')})
 
     attachments = [attachment for attachment in metadata_result.get('attachments', []) if attachment.get('id')]
     if not attachments:
-        return jsonify({'success': False, 'error': '没有可下载附件'})
+        return jsonify({'success': False, 'error': 'No downloadable attachments were found'})
 
     response = Response(
         stream_email_attachments_zip(
@@ -2847,7 +2847,7 @@ def api_download_email_attachment(email_addr, message_id, attachment_id):
     """下载邮件附件"""
     account = get_account_by_email(email_addr)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'})
+        return jsonify({'success': False, 'error': 'Account not found'})
 
     method = request.args.get('method', 'graph')
     folder = normalize_folder_name(request.args.get('folder', 'inbox'))
@@ -2864,7 +2864,7 @@ def api_download_email_attachment(email_addr, message_id, attachment_id):
     )
 
     if not result.get('success'):
-        return jsonify({'success': False, 'error': result.get('error', '获取附件失败')})
+        return jsonify({'success': False, 'error': result.get('error', 'Failed to fetch attachment')})
 
     filename = sanitize_attachment_filename(result.get('filename', ''), 'attachment')
     encoded_filename = quote(filename)

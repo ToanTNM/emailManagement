@@ -102,7 +102,7 @@
 
             const groupSelect = document.getElementById('tokenSaveGroupSelect');
             if (groupSelect) {
-                const nonTempGroups = groups.filter(group => group.name !== '临时邮箱');
+                const nonTempGroups = groups.filter(group => !isTempEmailGroupName(group.name));
                 const fallbackGroupId = (!isTempEmailGroup && currentGroupId && nonTempGroups.find(group => group.id === currentGroupId))
                     ? currentGroupId
                     : (nonTempGroups[0]?.id || '');

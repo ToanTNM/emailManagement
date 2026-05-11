@@ -536,8 +536,24 @@
             return names[String(folder || '').trim().toLowerCase()] || translateAppText('邮件');
         }
 
+        function isTempEmailGroupName(groupName) {
+            const normalized = String(groupName || '').trim();
+            return normalized === '临时邮箱' || normalized === 'Temp Email';
+        }
+
+        function isDefaultGroupName(groupName) {
+            const normalized = String(groupName || '').trim();
+            return normalized === '默认分组' || normalized === 'Default Group';
+        }
+
         function normalizeGroupName(groupName, fallbackName = '未命名分组') {
             const normalizedName = String(groupName || '').trim();
+            if (isTempEmailGroupName(normalizedName)) {
+                return 'Temp Email';
+            }
+            if (isDefaultGroupName(normalizedName)) {
+                return 'Default Group';
+            }
             return normalizedName ? translateAppText(normalizedName) : translateAppText(fallbackName);
         }
 

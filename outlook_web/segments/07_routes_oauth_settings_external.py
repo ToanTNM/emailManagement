@@ -46,7 +46,7 @@ def api_exchange_oauth_token():
     redirected_url = data.get('redirected_url', '').strip()
 
     if not redirected_url:
-        return jsonify({'success': False, 'error': '请提供授权后的完整 URL'})
+        return jsonify({'success': False, 'error': 'Please provide the full redirected URL'})
 
     # 从 URL 中提取 code
     try:
@@ -54,7 +54,7 @@ def api_exchange_oauth_token():
         query_params = urllib.parse.parse_qs(parsed_url.query)
         auth_code = query_params['code'][0]
     except (KeyError, IndexError):
-        return jsonify({'success': False, 'error': '无法从 URL 中提取授权码，请检查 URL 是否正确'})
+        return jsonify({'success': False, 'error': 'Could not extract the authorization code from the URL. Please verify the URL'})
 
     # 使用 Code 换取 Token (Public Client 不需要 client_secret)
     token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
@@ -69,14 +69,14 @@ def api_exchange_oauth_token():
     try:
         response = requests.post(token_url, data=token_data, timeout=30)
     except Exception as e:
-        return jsonify({'success': False, 'error': f'请求失败: {str(e)}'})
+        return jsonify({'success': False, 'error': f'Request failed: {str(e)}'})
 
     if response.status_code == 200:
         tokens = response.json()
         refresh_token = tokens.get('refresh_token')
 
         if not refresh_token:
-            return jsonify({'success': False, 'error': '未能获取 Refresh Token'})
+            return jsonify({'success': False, 'error': 'Refresh Token was not returned'})
 
         return jsonify({
             'success': True,
@@ -89,7 +89,7 @@ def api_exchange_oauth_token():
     else:
         error_data = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
         error_msg = error_data.get('error_description', response.text)
-        return jsonify({'success': False, 'error': f'获取令牌失败: {error_msg}'})
+        return jsonify({'success': False, 'error': f'Failed to obtain token: {error_msg}'})
 
 
 # ==================== 设置 API ====================
@@ -136,7 +136,7 @@ def has_webdav_backup_setting_changes(data) -> bool:
 
 def validate_cron_expression_for_timezone(cron_expr: str, time_zone: str):
     if not cron_expr:
-        return 'Cron 表达式不能为空'
+        return 'Cron expression is required'
     if not is_valid_app_timezone_name(time_zone):
         return 'Invalid time zone'
     try:
@@ -145,17 +145,17 @@ def validate_cron_expression_for_timezone(cron_expr: str, time_zone: str):
         croniter(cron_expr, datetime.now(ZoneInfo(time_zone)))
         return None
     except ImportError:
-        return 'croniter 库未安装'
+        return 'croniter is not installed'
     except Exception as exc:
-        return f'Cron 表达式无效: {str(exc)}'
+        return f'Invalid cron expression: {str(exc)}'
 
 
 def validate_five_field_cron_expression_for_timezone(cron_expr: str, time_zone: str):
     normalized = str(cron_expr or '').strip()
     if not normalized:
-        return 'Cron 表达式不能为空'
+        return 'Cron expression is required'
     if len(normalized.split()) != 5:
-        return '仅支持 5 段 Cron'
+        return 'Only 5-field cron expressions are supported'
     return validate_cron_expression_for_timezone(normalized, time_zone)
 
 
@@ -191,7 +191,7 @@ def api_validate_cron():
     try:
         from croniter import croniter  # noqa: F401
     except ImportError:
-        return jsonify({'success': False, 'error': 'croniter 库未安装，请运行: pip install croniter'})
+        return jsonify({'success': False, 'error': 'croniter is not installed. Run: pip install croniter'})
 
     data = request.json or {}
     cron_expr = data.get('cron_expression', '').strip()
@@ -199,7 +199,7 @@ def api_validate_cron():
     expected_fields = data.get('expected_fields')
 
     if not cron_expr:
-        return jsonify({'success': False, 'error': 'Cron 表达式不能为空'})
+        return jsonify({'success': False, 'error': 'Cron expression is required'})
 
     if expected_fields is not None:
         try:
@@ -210,7 +210,7 @@ def api_validate_cron():
             return jsonify({
                 'success': False,
                 'valid': False,
-                'error': f'仅支持 {expected_field_count} 段 Cron'
+                'error': f'Only {expected_field_count}-field cron expressions are supported'
             })
 
     if requested_timezone and not is_valid_app_timezone_name(requested_timezone):
@@ -231,7 +231,7 @@ def api_validate_cron():
         return jsonify({
             'success': False,
             'valid': False,
-            'error': f'Cron 表达式无效: {str(e)}'
+            'error': f'Invalid cron expression: {str(e)}'
         })
 
 
@@ -312,9 +312,9 @@ def api_update_settings():
     if webdav_backup_changed:
         confirm_password = str(data.get('webdav_backup_verify_password', ''))
         if not confirm_password:
-            return jsonify({'success': False, 'error': '修改 WebDAV 备份设置需要验证登录密码'})
+            return jsonify({'success': False, 'error': 'Login password verification is required before changing WebDAV backup settings'})
         if not verify_login_password(confirm_password):
-            return jsonify({'success': False, 'error': 'WebDAV 备份设置验证失败：登录密码错误'})
+            return jsonify({'success': False, 'error': 'WebDAV backup settings verification failed: incorrect login password'})
 
         proposed_backup = {
             key: normalize_webdav_backup_setting_value(key, get_current_webdav_backup_setting_value(key))
@@ -328,9 +328,9 @@ def api_update_settings():
             backup_url = proposed_backup['webdav_backup_url']
             parsed_url = urlparse(backup_url)
             if not backup_url:
-                return jsonify({'success': False, 'error': '启用 WebDAV 备份时必须填写 WebDAV 目录 URL'})
+                return jsonify({'success': False, 'error': 'A WebDAV directory URL is required when WebDAV backup is enabled'})
             if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
-                return jsonify({'success': False, 'error': 'WebDAV 目录 URL 必须是有效的 http(s) 地址'})
+                return jsonify({'success': False, 'error': 'The WebDAV directory URL must be a valid http(s) address'})
 
             backup_timezone = str(data.get('app_timezone') or get_app_timezone()).strip()
             backup_timezone = normalize_app_timezone_name(backup_timezone, get_app_timezone())
@@ -343,14 +343,14 @@ def api_update_settings():
         new_password = data['login_password'].strip()
         if new_password:
             if len(new_password) < 8:
-                errors.append('密码长度至少为 8 位')
+                errors.append('Password must be at least 8 characters long')
             else:
                 # 哈希新密码
                 hashed_password = hash_password(new_password)
                 if set_setting('login_password', hashed_password):
-                    updated.append('登录密码')
+                    updated.append('Login password')
                 else:
-                    errors.append('更新登录密码失败')
+                    errors.append('Failed to update login password')
 
     # 更新 GPTMail API Key
     if 'gptmail_api_key' in data:
@@ -359,33 +359,33 @@ def api_update_settings():
             if set_setting('gptmail_api_key', new_api_key):
                 updated.append('GPTMail API Key')
             else:
-                errors.append('更新 GPTMail API Key 失败')
+                errors.append('Failed to update GPTMail API Key')
 
     # 更新刷新周期
     if 'refresh_interval_days' in data:
         try:
             days = int(data['refresh_interval_days'])
             if days < 1 or days > 90:
-                errors.append('刷新周期必须在 1-90 天之间')
+                errors.append('Refresh interval must be between 1 and 90 days')
             elif set_setting('refresh_interval_days', str(days)):
-                updated.append('刷新周期')
+                updated.append('Refresh interval')
             else:
-                errors.append('更新刷新周期失败')
+                errors.append('Failed to update refresh interval')
         except ValueError:
-            errors.append('刷新周期必须是数字')
+            errors.append('Refresh interval must be numeric')
 
     # 更新刷新间隔
     if 'refresh_delay_seconds' in data:
         try:
             seconds = int(data['refresh_delay_seconds'])
             if seconds < 0 or seconds > 60:
-                errors.append('刷新间隔必须在 0-60 秒之间')
+                errors.append('Refresh delay must be between 0 and 60 seconds')
             elif set_setting('refresh_delay_seconds', str(seconds)):
-                updated.append('刷新间隔')
+                updated.append('Refresh delay')
             else:
-                errors.append('更新刷新间隔失败')
+                errors.append('Failed to update refresh delay')
         except ValueError:
-            errors.append('刷新间隔必须是数字')
+            errors.append('Refresh delay must be numeric')
 
     # 更新 Cron 表达式
     if 'refresh_cron' in data:
@@ -396,35 +396,35 @@ def api_update_settings():
                 from datetime import datetime
                 croniter(cron_expr, datetime.now())
                 if set_setting('refresh_cron', cron_expr):
-                    updated.append('Cron 表达式')
+                    updated.append('Cron expression')
                 else:
-                    errors.append('更新 Cron 表达式失败')
+                    errors.append('Failed to update cron expression')
             except ImportError:
-                errors.append('croniter 库未安装')
+                errors.append('croniter is not installed')
             except Exception as e:
-                errors.append(f'Cron 表达式无效: {str(e)}')
+                errors.append(f'Invalid cron expression: {str(e)}')
 
     # 更新刷新策略
     if 'use_cron_schedule' in data:
         use_cron = str(data['use_cron_schedule']).lower()
         if use_cron in ('true', 'false'):
             if set_setting('use_cron_schedule', use_cron):
-                updated.append('刷新策略')
+                updated.append('Refresh strategy')
             else:
-                errors.append('更新刷新策略失败')
+                errors.append('Failed to update refresh strategy')
         else:
-            errors.append('刷新策略必须是 true 或 false')
+            errors.append('Refresh strategy must be true or false')
 
     # 更新定时刷新开关
     if 'enable_scheduled_refresh' in data:
         enable = str(data['enable_scheduled_refresh']).lower()
         if enable in ('true', 'false'):
             if set_setting('enable_scheduled_refresh', enable):
-                updated.append('定时刷新开关')
+                updated.append('Scheduled refresh toggle')
             else:
-                errors.append('更新定时刷新开关失败')
+                errors.append('Failed to update the scheduled refresh toggle')
         else:
-            errors.append('定时刷新开关必须是 true 或 false')
+            errors.append('Scheduled refresh toggle must be true or false')
 
     if 'app_timezone' in data:
         app_timezone = str(data['app_timezone']).strip()
@@ -439,245 +439,245 @@ def api_update_settings():
         show_created_at = str(data['show_account_created_at']).lower()
         if show_created_at in ('true', 'false'):
             if set_setting('show_account_created_at', show_created_at):
-                updated.append('创建时间展示')
+                updated.append('Created-at display')
             else:
-                errors.append('更新创建时间展示失败')
+                errors.append('Failed to update created-at display')
         else:
-            errors.append('创建时间展示必须是 true 或 false')
+            errors.append('Created-at display must be true or false')
 
     if 'show_account_sort_order' in data:
         show_sort_order = str(data['show_account_sort_order']).lower()
         if show_sort_order in ('true', 'false'):
             if set_setting('show_account_sort_order', show_sort_order):
-                updated.append('排序值展示')
+                updated.append('Sort-order display')
             else:
-                errors.append('更新排序值展示失败')
+                errors.append('Failed to update sort-order display')
         else:
-            errors.append('排序值展示必须是 true 或 false')
+            errors.append('Sort-order display must be true or false')
 
     if 'show_group_id' in data:
         show_group_id = str(data['show_group_id']).lower()
         if show_group_id in ('true', 'false'):
             if set_setting('show_group_id', show_group_id):
-                updated.append('组ID展示')
+                updated.append('Group ID display')
             else:
-                errors.append('更新组ID展示失败')
+                errors.append('Failed to update group ID display')
         else:
-            errors.append('组ID展示必须是 true 或 false')
+            errors.append('Group ID display must be true or false')
 
     # 更新对外 API Key
     if 'external_api_key' in data:
         new_ext_key = data['external_api_key'].strip()
         if new_ext_key:
             if set_setting('external_api_key', new_ext_key):
-                updated.append('对外 API Key')
+                updated.append('External API Key')
             else:
-                errors.append('更新对外 API Key 失败')
+                errors.append('Failed to update the external API Key')
         else:
             if set_setting('external_api_key', ''):
-                updated.append('对外 API Key（已清空）')
+                updated.append('External API Key (cleared)')
 
     # 更新 DuckMail 设置
     if 'duckmail_base_url' in data:
         new_url = data['duckmail_base_url'].strip()
         if set_setting('duckmail_base_url', new_url):
-            updated.append('DuckMail API 地址')
+            updated.append('DuckMail API URL')
         else:
-            errors.append('更新 DuckMail API 地址失败')
+            errors.append('Failed to update the DuckMail API URL')
 
     if 'duckmail_api_key' in data:
         new_dk_key = data['duckmail_api_key'].strip()
         if set_setting('duckmail_api_key', new_dk_key):
             updated.append('DuckMail API Key')
         else:
-            errors.append('更新 DuckMail API Key 失败')
+            errors.append('Failed to update the DuckMail API Key')
 
     if 'cloudflare_worker_domain' in data:
         new_domain = data['cloudflare_worker_domain'].strip()
         if set_setting('cloudflare_worker_domain', new_domain):
-            updated.append('Cloudflare Worker 域名')
+            updated.append('Cloudflare Worker domain')
         else:
-            errors.append('更新 Cloudflare Worker 域名失败')
+            errors.append('Failed to update the Cloudflare Worker domain')
 
     if 'cloudflare_email_domains' in data:
         new_domains = data['cloudflare_email_domains'].strip()
         if set_setting('cloudflare_email_domains', new_domains):
-            updated.append('Cloudflare 邮箱域名')
+            updated.append('Cloudflare email domains')
         else:
-            errors.append('更新 Cloudflare 邮箱域名失败')
+            errors.append('Failed to update the Cloudflare email domains')
 
     if 'cloudflare_admin_password' in data:
         new_password = data['cloudflare_admin_password'].strip()
         if set_setting('cloudflare_admin_password', new_password):
-            updated.append('Cloudflare 管理密码')
+            updated.append('Cloudflare admin password')
         else:
-            errors.append('更新 Cloudflare 管理密码失败')
+            errors.append('Failed to update the Cloudflare admin password')
 
     if 'forward_check_interval_minutes' in data:
         try:
             minutes = int(data['forward_check_interval_minutes'])
             if minutes < 1 or minutes > 60:
-                errors.append('转发检查间隔必须在 1-60 分钟之间')
+                errors.append('Forwarding check interval must be between 1 and 60 minutes')
             elif set_setting('forward_check_interval_minutes', str(minutes)):
-                updated.append('转发检查间隔')
+                updated.append('Forwarding check interval')
             else:
-                errors.append('保存转发检查间隔失败')
+                errors.append('Failed to save the forwarding check interval')
         except ValueError:
-            errors.append('转发检查间隔必须是数字')
+            errors.append('Forwarding check interval must be numeric')
 
     if 'forward_account_delay_seconds' in data:
         try:
             seconds = int(data['forward_account_delay_seconds'])
             if seconds < 0 or seconds > 60:
-                errors.append('账号间拉取间隔必须在 0-60 秒之间')
+                errors.append('Per-account fetch delay must be between 0 and 60 seconds')
             elif set_setting('forward_account_delay_seconds', str(seconds)):
-                updated.append('账号间拉取间隔')
+                updated.append('Per-account fetch delay')
             else:
-                errors.append('保存账号间拉取间隔失败')
+                errors.append('Failed to save the per-account fetch delay')
         except ValueError:
-            errors.append('账号间拉取间隔必须是数字')
+            errors.append('Per-account fetch delay must be numeric')
 
     if 'forward_email_window_minutes' in data:
         try:
             minutes = int(data['forward_email_window_minutes'])
             if minutes < 0 or minutes > 10080:
-                errors.append('转发邮件时间范围必须在 0-10080 分钟之间')
+                errors.append('Forward email time window must be between 0 and 10080 minutes')
             elif set_setting('forward_email_window_minutes', str(minutes)):
-                updated.append('转发邮件时间范围')
+                updated.append('Forward email time window')
             else:
-                errors.append('保存转发邮件时间范围失败')
+                errors.append('Failed to save the forward email time window')
         except ValueError:
-            errors.append('转发邮件时间范围必须是数字')
+            errors.append('Forward email time window must be numeric')
 
     if 'forward_include_junkemail' in data:
         include_junk = str(data['forward_include_junkemail']).lower()
         if include_junk in ('true', 'false'):
             if set_setting('forward_include_junkemail', include_junk):
-                updated.append('转发垃圾箱邮件')
+                updated.append('Forward junk mail')
             else:
-                errors.append('保存转发垃圾箱邮件失败')
+                errors.append('Failed to save the junk mail forwarding setting')
         else:
-            errors.append('转发垃圾箱邮件必须是 true 或 false')
+            errors.append('Forward junk mail must be true or false')
 
     if 'forward_channels' in data:
         forward_channels = normalize_forward_channel_settings(data['forward_channels'])
         stored_value = ','.join(forward_channels) if forward_channels else 'none'
         if set_setting('forward_channels', stored_value):
-            updated.append('转发渠道')
+            updated.append('Forwarding channels')
         else:
-            errors.append('保存转发渠道失败')
+            errors.append('Failed to save forwarding channels')
 
     if 'email_forward_recipient' in data:
         if set_setting('email_forward_recipient', data['email_forward_recipient'].strip()):
-            updated.append('邮件转发收件箱')
+            updated.append('Email forwarding recipient')
         else:
-            errors.append('保存邮件转发收件箱失败')
+            errors.append('Failed to save the email forwarding recipient')
 
     if 'smtp_host' in data:
         if set_setting('smtp_host', data['smtp_host'].strip()):
-            updated.append('SMTP 主机')
+            updated.append('SMTP host')
         else:
-            errors.append('保存 SMTP 主机失败')
+            errors.append('Failed to save the SMTP host')
 
     if 'smtp_port' in data:
         try:
             smtp_port = int(data['smtp_port'])
             if smtp_port <= 0 or smtp_port > 65535:
-                errors.append('SMTP 端口无效')
+                errors.append('Invalid SMTP port')
             elif set_setting('smtp_port', str(smtp_port)):
-                updated.append('SMTP 端口')
+                updated.append('SMTP port')
             else:
-                errors.append('保存 SMTP 端口失败')
+                errors.append('Failed to save the SMTP port')
         except ValueError:
-            errors.append('SMTP 端口必须是数字')
+            errors.append('SMTP port must be numeric')
 
     if 'smtp_username' in data:
         if set_setting('smtp_username', data['smtp_username'].strip()):
-            updated.append('SMTP 用户名')
+            updated.append('SMTP username')
         else:
-            errors.append('保存 SMTP 用户名失败')
+            errors.append('Failed to save the SMTP username')
 
     if 'smtp_password' in data:
         if set_setting_encrypted('smtp_password', data['smtp_password'].strip()):
-            updated.append('SMTP 密码')
+            updated.append('SMTP password')
         else:
-            errors.append('保存 SMTP 密码失败')
+            errors.append('Failed to save the SMTP password')
 
     if 'smtp_from_email' in data:
         if set_setting('smtp_from_email', data['smtp_from_email'].strip()):
-            updated.append('SMTP 发件人')
+            updated.append('SMTP sender')
         else:
-            errors.append('保存 SMTP 发件人失败')
+            errors.append('Failed to save the SMTP sender')
 
     if 'smtp_provider' in data:
         smtp_provider = normalize_smtp_forward_provider(data['smtp_provider'])
         if str(data['smtp_provider']).strip().lower() not in SMTP_FORWARD_PROVIDERS:
-            errors.append('SMTP 邮箱类型无效')
+            errors.append('Invalid SMTP provider type')
         elif set_setting('smtp_provider', smtp_provider):
-            updated.append('SMTP 邮箱类型')
+            updated.append('SMTP provider type')
         else:
-            errors.append('保存 SMTP 邮箱类型失败')
+            errors.append('Failed to save the SMTP provider type')
 
     if 'smtp_use_tls' in data:
         if set_setting('smtp_use_tls', str(data['smtp_use_tls']).lower()):
             updated.append('SMTP TLS')
         else:
-            errors.append('保存 SMTP TLS 失败')
+            errors.append('Failed to save SMTP TLS')
 
     if 'smtp_use_ssl' in data:
         if set_setting('smtp_use_ssl', str(data['smtp_use_ssl']).lower()):
             updated.append('SMTP SSL')
         else:
-            errors.append('保存 SMTP SSL 失败')
+            errors.append('Failed to save SMTP SSL')
 
     if 'telegram_bot_token' in data:
         if set_setting_encrypted('telegram_bot_token', data['telegram_bot_token'].strip()):
             updated.append('Telegram Bot Token')
         else:
-            errors.append('保存 Telegram Bot Token 失败')
+            errors.append('Failed to save the Telegram Bot Token')
 
     if 'telegram_chat_id' in data:
         if set_setting('telegram_chat_id', data['telegram_chat_id'].strip()):
             updated.append('Telegram Chat ID')
         else:
-            errors.append('保存 Telegram Chat ID 失败')
+            errors.append('Failed to save the Telegram Chat ID')
 
     if 'telegram_proxy_url' in data:
         if set_setting('telegram_proxy_url', data['telegram_proxy_url'].strip()):
-            updated.append('Telegram 代理')
+            updated.append('Telegram proxy')
         else:
-            errors.append('保存 Telegram 代理失败')
+            errors.append('Failed to save the Telegram proxy')
 
     if 'wecom_webhook_url' in data:
         if set_setting_encrypted('wecom_webhook_url', data['wecom_webhook_url'].strip()):
-            updated.append('企业微信 Webhook')
+            updated.append('WeCom webhook')
         else:
-            errors.append('保存企业微信 Webhook 失败')
+            errors.append('Failed to save the WeCom webhook')
 
     if 'webdav_backup_enabled' in data:
         enabled = normalize_bool_setting_value(data['webdav_backup_enabled'])
         if set_setting('webdav_backup_enabled', enabled):
-            updated.append('WebDAV 备份开关')
+            updated.append('WebDAV backup toggle')
         else:
-            errors.append('保存 WebDAV 备份开关失败')
+            errors.append('Failed to save the WebDAV backup toggle')
 
     if 'webdav_backup_url' in data:
         if set_setting('webdav_backup_url', str(data['webdav_backup_url']).strip()):
-            updated.append('WebDAV 目录 URL')
+            updated.append('WebDAV directory URL')
         else:
-            errors.append('保存 WebDAV 目录 URL 失败')
+            errors.append('Failed to save the WebDAV directory URL')
 
     if 'webdav_backup_username' in data:
         if set_setting('webdav_backup_username', str(data['webdav_backup_username']).strip()):
-            updated.append('WebDAV 用户名')
+            updated.append('WebDAV username')
         else:
-            errors.append('保存 WebDAV 用户名失败')
+            errors.append('Failed to save the WebDAV username')
 
     if 'webdav_backup_password' in data:
         if set_setting_encrypted('webdav_backup_password', str(data['webdav_backup_password']).strip()):
-            updated.append('WebDAV 密码')
+            updated.append('WebDAV password')
         else:
-            errors.append('保存 WebDAV 密码失败')
+            errors.append('Failed to save the WebDAV password')
 
     if 'webdav_backup_cron' in data:
         cron_expr = str(data['webdav_backup_cron']).strip()
@@ -686,17 +686,17 @@ def api_update_settings():
         if cron_error:
             errors.append(cron_error)
         elif set_setting('webdav_backup_cron', cron_expr):
-            updated.append('WebDAV 备份 Cron')
+            updated.append('WebDAV backup cron')
         else:
-            errors.append('保存 WebDAV 备份 Cron 失败')
+            errors.append('Failed to save the WebDAV backup cron')
 
     if errors:
-        return jsonify({'success': False, 'error': '；'.join(errors)})
+        return jsonify({'success': False, 'error': '; '.join(errors)})
 
     if updated:
-        return jsonify({'success': True, 'message': f'已更新：{", ".join(updated)}'})
+        return jsonify({'success': True, 'message': f'Updated: {", ".join(updated)}'})
     else:
-        return jsonify({'success': False, 'error': '没有需要更新的设置'})
+        return jsonify({'success': False, 'error': 'No settings needed to be updated'})
 
 
 # ==================== 对外 API ====================
@@ -712,12 +712,12 @@ def api_external_get_emails():
     top = int(request.args.get('top', 20))
 
     if not email_addr:
-        return jsonify({'success': False, 'error': '缺少 email 参数'}), 400
+        return jsonify({'success': False, 'error': 'Missing email parameter'}), 400
 
     # 验证 folder 参数
     valid_folders = ['inbox', 'junkemail']
     if folder not in valid_folders:
-        return jsonify({'success': False, 'error': f'folder 参数无效，支持: {", ".join(valid_folders)}'}), 400
+        return jsonify({'success': False, 'error': f'Invalid folder parameter. Supported values: {", ".join(valid_folders)}'}), 400
 
     # 限制分页大小
     if top > 50:
@@ -725,7 +725,7 @@ def api_external_get_emails():
 
     account = resolve_account_for_email_api(email_addr)
     if not account:
-        return jsonify({'success': False, 'error': '邮箱账号不存在'}), 404
+        return jsonify({'success': False, 'error': 'Email account not found'}), 404
 
     # 获取分组代理设置
     proxy_url = get_account_proxy_url(account)
@@ -757,7 +757,7 @@ def api_external_get_emails():
         graph_error = graph_result.get('error')
         all_errors['graph'] = graph_error
         if isinstance(graph_error, dict) and graph_error.get('type') in ('ProxyError', 'ConnectionError'):
-            return jsonify({'success': False, 'error': '代理连接失败', 'details': all_errors})
+            return jsonify({'success': False, 'error': 'Proxy connection failed', 'details': all_errors})
 
     # 2. 尝试新版 IMAP
     imap_new_result = get_emails_imap_with_server(
@@ -789,4 +789,4 @@ def api_external_get_emails():
     else:
         all_errors['imap_old'] = imap_old_result.get('error')
 
-    return jsonify({'success': False, 'error': '无法获取邮件，所有方式均失败', 'details': all_errors})
+    return jsonify({'success': False, 'error': 'Failed to fetch emails. All methods failed', 'details': all_errors})

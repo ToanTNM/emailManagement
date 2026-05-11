@@ -21,7 +21,7 @@
                     accountsCache['temp'] = data.emails;
                     renderTempEmailList(data.emails);
 
-                    const group = groups.find(g => g.name === '临时邮箱');
+                    const group = groups.find(g => isTempEmailGroupName(g.name));
                     if (group) {
                         group.account_count = data.emails.length;
                         renderGroupList(groups);

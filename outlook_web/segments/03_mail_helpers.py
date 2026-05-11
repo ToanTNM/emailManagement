@@ -120,7 +120,7 @@ def request_with_proxy_failover(method: str, url: str, *, proxy_url: str = None,
 
     if last_exc:
         raise last_exc
-    raise RuntimeError(f"请求失败: {method.upper()} {url}")
+    raise RuntimeError(f"Request failed: {method.upper()} {url}")
 
 
 def post_with_proxy_fallback(url: str, *, proxy_url: str = None,
@@ -210,7 +210,7 @@ def get_access_token_graph_result(client_id: str, refresh_token: str, proxy_url:
                 "success": False,
                 "error": build_error_payload(
                     "GRAPH_TOKEN_FAILED",
-                    "获取访问令牌失败",
+                    "Failed to obtain access token",
                     "GraphAPIError",
                     res.status_code,
                     details
@@ -224,7 +224,7 @@ def get_access_token_graph_result(client_id: str, refresh_token: str, proxy_url:
                 "success": False,
                 "error": build_error_payload(
                     "GRAPH_TOKEN_MISSING",
-                    "获取访问令牌失败",
+                    "Failed to obtain access token",
                     "GraphAPIError",
                     res.status_code,
                     payload
@@ -237,7 +237,7 @@ def get_access_token_graph_result(client_id: str, refresh_token: str, proxy_url:
             "success": False,
             "error": build_error_payload(
                 "GRAPH_TOKEN_EXCEPTION",
-                "获取访问令牌失败",
+                "Failed to obtain access token",
                 type(exc).__name__,
                 500,
                 str(exc)
@@ -302,7 +302,7 @@ def get_emails_graph(client_id: str, refresh_token: str, folder: str = 'inbox', 
                 "success": False,
                 "error": build_error_payload(
                     "EMAIL_FETCH_FAILED",
-                    "获取邮件失败，请检查账号配置",
+                    "Failed to fetch emails. Please check the account configuration",
                     "GraphAPIError",
                     res.status_code,
                     details
@@ -315,7 +315,7 @@ def get_emails_graph(client_id: str, refresh_token: str, folder: str = 'inbox', 
             "success": False,
             "error": build_error_payload(
                 "EMAIL_FETCH_FAILED",
-                "获取邮件失败，请检查账号配置",
+                "Failed to fetch emails. Please check the account configuration",
                 type(exc).__name__,
                 500,
                 str(exc)
@@ -368,7 +368,7 @@ def mark_emails_read_graph_result(client_id: str, refresh_token: str, message_id
             'success_count': 0,
             'failed_count': 0,
             'updated_ids': [],
-            'errors': ['message_ids 不能为空'],
+            'errors': ['message_ids is required'],
         }
 
     token_result = get_access_token_graph_result(client_id, refresh_token, proxy_url, fallback_proxy_urls)
@@ -422,7 +422,7 @@ def mark_emails_read_graph_result(client_id: str, refresh_token: str, message_id
                 'id': message_id,
                 'error': build_error_payload(
                     'EMAIL_MARK_READ_FAILED',
-                    '标记邮件已读失败',
+                    'Failed to mark emails as read',
                     type(exc).__name__,
                     500,
                     str(exc)
@@ -433,7 +433,7 @@ def mark_emails_read_graph_result(client_id: str, refresh_token: str, message_id
         if response.status_code != 200:
             error_payload = build_error_payload(
                 'EMAIL_MARK_READ_FAILED',
-                '标记邮件已读失败',
+                'Failed to mark emails as read',
                 'GraphAPIError',
                 response.status_code,
                 get_response_details(response)
@@ -456,10 +456,10 @@ def mark_emails_read_graph_result(client_id: str, refresh_token: str, message_id
                 'id': message_id,
                 'error': build_error_payload(
                     'EMAIL_MARK_READ_FAILED',
-                    '标记邮件已读失败',
+                    'Failed to mark emails as read',
                     'GraphAPIError',
                     status_code or 500,
-                    error_body or '批处理返回空响应'
+                    error_body or 'Batch request returned an empty response'
                 )
             })
 
@@ -545,7 +545,7 @@ def download_email_attachment_graph_result(client_id: str, refresh_token: str, m
                 "success": False,
                 "error": build_error_payload(
                     "ATTACHMENT_FETCH_FAILED",
-                    "获取附件失败",
+                    "Failed to fetch attachment",
                     "GraphAPIError",
                     metadata_res.status_code,
                     get_response_details(metadata_res)
@@ -562,7 +562,7 @@ def download_email_attachment_graph_result(client_id: str, refresh_token: str, m
                     "success": False,
                     "error": build_error_payload(
                         "ATTACHMENT_DECODE_FAILED",
-                        "解析附件内容失败",
+                        "Failed to decode attachment content",
                         type(exc).__name__,
                         500,
                         str(exc)
@@ -582,7 +582,7 @@ def download_email_attachment_graph_result(client_id: str, refresh_token: str, m
                     "success": False,
                     "error": build_error_payload(
                         "ATTACHMENT_FETCH_FAILED",
-                        "获取附件失败",
+                        "Failed to fetch attachment",
                         "GraphAPIError",
                         content_res.status_code,
                         get_response_details(content_res)
@@ -601,7 +601,7 @@ def download_email_attachment_graph_result(client_id: str, refresh_token: str, m
             "success": False,
             "error": build_error_payload(
                 "ATTACHMENT_FETCH_FAILED",
-                "获取附件失败",
+                "Failed to fetch attachment",
                 type(exc).__name__,
                 500,
                 str(exc)
@@ -634,7 +634,7 @@ def get_access_token_imap_result(client_id: str, refresh_token: str, proxy_url: 
                 "success": False,
                 "error": build_error_payload(
                     "IMAP_TOKEN_FAILED",
-                    "获取访问令牌失败",
+                    "Failed to obtain access token",
                     "IMAPError",
                     res.status_code,
                     details
@@ -648,7 +648,7 @@ def get_access_token_imap_result(client_id: str, refresh_token: str, proxy_url: 
                 "success": False,
                 "error": build_error_payload(
                     "IMAP_TOKEN_MISSING",
-                    "获取访问令牌失败",
+                    "Failed to obtain access token",
                     "IMAPError",
                     res.status_code,
                     payload
@@ -661,7 +661,7 @@ def get_access_token_imap_result(client_id: str, refresh_token: str, proxy_url: 
             "success": False,
             "error": build_error_payload(
                 "IMAP_TOKEN_EXCEPTION",
-                "获取访问令牌失败",
+                "Failed to obtain access token",
                 type(exc).__name__,
                 500,
                 str(exc)
@@ -721,7 +721,7 @@ def get_emails_imap_with_server(account: str, client_id: str, refresh_token: str
                 "success": False,
                 "error": build_error_payload(
                     "EMAIL_FETCH_FAILED",
-                    f"无法访问文件夹，请检查账号配置",
+                    "Cannot access the folder. Please check the account configuration",
                     "IMAPSelectError",
                     500,
                     folder_diagnostics
@@ -734,7 +734,7 @@ def get_emails_imap_with_server(account: str, client_id: str, refresh_token: str
                 "success": False,
                 "error": build_error_payload(
                     "EMAIL_FETCH_FAILED",
-                    "获取邮件失败，请检查账号配置",
+                    "Failed to fetch emails. Please check the account configuration",
                     "IMAPSearchError",
                     500,
                     f"search status={status}"
@@ -783,7 +783,7 @@ def get_emails_imap_with_server(account: str, client_id: str, refresh_token: str
             "success": False,
             "error": build_error_payload(
                 "EMAIL_FETCH_FAILED",
-                "获取邮件失败，请检查账号配置",
+                "Failed to fetch emails. Please check the account configuration",
                 type(exc).__name__,
                 500,
                 str(exc)
@@ -973,7 +973,7 @@ def create_imap_connection(imap_host: str, imap_port: int = 993, proxy_url: str 
     host = (imap_host or '').strip()
     port = int(imap_port or 993)
     if not host:
-        raise ValueError('IMAP host 不能为空')
+        raise ValueError('IMAP host is required')
     try:
         with proxy_socket_context(proxy_url):
             return imaplib.IMAP4_SSL(host, port, timeout=IMAP_TIMEOUT)
@@ -1148,15 +1148,15 @@ def resolve_imap_folder(mail, provider: str, folder: str, readonly: bool = True)
 
 
 def normalize_imap_auth_error(provider: str, imap_host: str, raw_message: str) -> str:
-    message = sanitize_error_details(str(raw_message or '')).strip() or 'IMAP 认证失败'
+    message = sanitize_error_details(str(raw_message or '')).strip() or 'IMAP authentication failed'
     if 'unsafe login' in message.lower():
         if (provider or '').strip().lower() in {'126', '163'}:
-            return '网易邮箱拦截了当前 IMAP 登录（Unsafe Login），请在网页端开启 IMAP 并使用客户端授权码；若仍失败，说明当前网络或服务器 IP 被风控'
-        return '邮箱服务商拦截了当前 IMAP 登录（Unsafe Login），请检查是否已开启 IMAP 并改用授权码'
+            return 'NetEase Mail blocked this IMAP login as Unsafe Login. Enable IMAP in the web console and use an app authorization code. If it still fails, the current network or server IP may be risk-controlled'
+        return 'The mail provider blocked this IMAP login as Unsafe Login. Make sure IMAP is enabled and use an app authorization code instead'
     if (provider or '').strip().lower() == 'gmail':
-        return 'IMAP 认证失败，请使用 Gmail 应用专用密码并确认已开启 IMAP'
+        return 'IMAP authentication failed. Use a Gmail app password and make sure IMAP is enabled'
     if ((provider or '').strip().lower() == 'outlook' or (imap_host or '').strip().lower() in {IMAP_SERVER_NEW, IMAP_SERVER_OLD}) and 'basicauthblocked' in message.lower():
-        return 'Outlook 已阻止 Basic Auth，请改用 Outlook OAuth 导入'
+        return 'Outlook has blocked Basic Auth. Please import the account with Outlook OAuth instead'
     return message
 
 
@@ -1174,9 +1174,9 @@ def get_imap_access_block_error(provider: str, folder: str, diagnostics: Dict[st
 
     provider_key = (provider or '').strip().lower()
     if provider_key in {'126', '163'}:
-        message = '网易邮箱拦截了当前 IMAP 登录（Unsafe Login），请在网页端开启 IMAP 并使用客户端授权码；若仍失败，说明当前网络或服务器 IP 被网易风控'
+        message = 'NetEase Mail blocked this IMAP login as Unsafe Login. Enable IMAP in the web console and use an app authorization code. If it still fails, the current network or server IP may be risk-controlled by NetEase'
     else:
-        message = '邮箱服务商拦截了当前 IMAP 登录（Unsafe Login），请确认已开启 IMAP、使用授权码，并检查当前网络或代理是否被风控'
+        message = 'The mail provider blocked this IMAP login as Unsafe Login. Confirm that IMAP is enabled, use an app authorization code, and check whether the current network or proxy is risk-controlled'
 
     return build_error_payload(
         'IMAP_UNSAFE_LOGIN_BLOCKED',
@@ -1382,7 +1382,7 @@ def mark_email_items_seen_imap(mail, items: List[Dict[str, Any]], provider: str,
                 'id': '',
                 'error': build_error_payload(
                     'EMAIL_MARK_READ_INVALID',
-                    'message_id 不能为空',
+                    'message_id is required',
                     'ValidationError',
                     400,
                     item
@@ -1400,7 +1400,7 @@ def mark_email_items_seen_imap(mail, items: List[Dict[str, Any]], provider: str,
         if not selected_folder:
             folder_error = build_error_payload(
                 'IMAP_FOLDER_NOT_FOUND',
-                'IMAP 文件夹不存在或无权访问',
+                'IMAP folder does not exist or access is denied',
                 'IMAPFolderError',
                 400,
                 {
@@ -1429,7 +1429,7 @@ def mark_email_items_seen_imap(mail, items: List[Dict[str, Any]], provider: str,
                 'id': item['id'],
                 'error': build_error_payload(
                     'EMAIL_MARK_READ_FAILED',
-                    '标记邮件已读失败',
+                    'Failed to mark emails as read',
                     'IMAPStoreError',
                     502,
                     {
@@ -1463,7 +1463,7 @@ def mark_emails_read_imap_batch(email_addr: str, client_id: str, refresh_token: 
             'success_count': 0,
             'failed_count': len(items or []),
             'updated_ids': [],
-            'errors': [build_error_payload('IMAP_TOKEN_FAILED', '获取访问令牌失败', 'IMAPError', 401, '')],
+            'errors': [build_error_payload('IMAP_TOKEN_FAILED', 'Failed to obtain access token', 'IMAPError', 401, '')],
         }
 
     connection = None
@@ -1479,7 +1479,7 @@ def mark_emails_read_imap_batch(email_addr: str, client_id: str, refresh_token: 
             'success_count': 0,
             'failed_count': len(items or []),
             'updated_ids': [],
-            'errors': [build_error_payload('IMAP_CONNECT_FAILED', 'IMAP 连接失败', type(exc).__name__, 502, str(exc))],
+            'errors': [build_error_payload('IMAP_CONNECT_FAILED', 'IMAP connection failed', type(exc).__name__, 502, str(exc))],
         }
     finally:
         if connection:
@@ -1520,7 +1520,7 @@ def mark_emails_read_imap_generic_result(email_addr: str, imap_password: str, im
             'success_count': 0,
             'failed_count': len(items or []),
             'updated_ids': [],
-            'errors': [build_error_payload('IMAP_CONNECT_FAILED', sanitize_error_details(str(exc)) or 'IMAP 连接失败', 'IMAPConnectError', 502, '')],
+            'errors': [build_error_payload('IMAP_CONNECT_FAILED', sanitize_error_details(str(exc)) or 'IMAP connection failed', 'IMAPConnectError', 502, '')],
         }
     finally:
         if mail:
@@ -1571,7 +1571,7 @@ def get_emails_imap_generic(email_addr: str, imap_password: str, imap_host: str,
                 'success': False,
                 'error': build_error_payload(
                     'IMAP_FOLDER_NOT_FOUND',
-                    'IMAP 文件夹不存在或无权访问',
+                    'IMAP folder does not exist or access is denied',
                     'IMAPFolderError',
                     400,
                     {
@@ -1596,7 +1596,7 @@ def get_emails_imap_generic(email_addr: str, imap_password: str, imap_host: str,
                 'success': False,
                 'error': build_error_payload(
                     'IMAP_SEARCH_FAILED',
-                    'IMAP 搜索邮件失败',
+                    'IMAP search failed',
                     'IMAPSearchError',
                     502,
                     {'attempts': search_attempts[:10]}
@@ -1661,7 +1661,7 @@ def get_emails_imap_generic(email_addr: str, imap_password: str, imap_host: str,
             'success': False,
             'error': build_error_payload(
                 'IMAP_CONNECT_FAILED',
-                sanitize_error_details(str(exc)) or 'IMAP 连接失败',
+                sanitize_error_details(str(exc)) or 'IMAP connection failed',
                 'IMAPConnectError',
                 502,
                 ''
@@ -1681,7 +1681,7 @@ def get_email_detail_imap_generic_result(email_addr: str, imap_password: str, im
                                          folder: str = 'inbox', provider: str = 'custom',
                                          proxy_url: str = '') -> Dict[str, Any]:
     if not message_id:
-        return {'success': False, 'error': build_error_payload('EMAIL_DETAIL_INVALID', 'message_id 不能为空', 'ValidationError', 400, '')}
+        return {'success': False, 'error': build_error_payload('EMAIL_DETAIL_INVALID', 'message_id is required', 'ValidationError', 400, '')}
 
     mail = None
     imap_id_info = {}
@@ -1716,7 +1716,7 @@ def get_email_detail_imap_generic_result(email_addr: str, imap_password: str, im
                 'success': False,
                 'error': build_error_payload(
                     'IMAP_FOLDER_NOT_FOUND',
-                    'IMAP 文件夹不存在或无权访问',
+                    'IMAP folder does not exist or access is denied',
                     'IMAPFolderError',
                     400,
                     {
@@ -1735,7 +1735,7 @@ def get_email_detail_imap_generic_result(email_addr: str, imap_password: str, im
                 'success': False,
                 'error': build_error_payload(
                     'EMAIL_DETAIL_FETCH_FAILED',
-                    '获取邮件详情失败',
+                    'Failed to fetch email details',
                     'IMAPFetchError',
                     502,
                     {
@@ -1758,7 +1758,7 @@ def get_email_detail_imap_generic_result(email_addr: str, imap_password: str, im
                 'success': False,
                 'error': build_error_payload(
                     'EMAIL_DETAIL_FETCH_FAILED',
-                    '获取邮件详情失败',
+                    'Failed to fetch email details',
                     'IMAPFetchError',
                     502,
                     {
@@ -1776,7 +1776,7 @@ def get_email_detail_imap_generic_result(email_addr: str, imap_password: str, im
             'email': build_email_detail_from_message(msg, str(message_id))
         }
     except Exception as exc:
-        return {'success': False, 'error': build_error_payload('IMAP_CONNECT_FAILED', sanitize_error_details(str(exc)) or 'IMAP 连接失败', 'IMAPConnectError', 502, '')}
+        return {'success': False, 'error': build_error_payload('IMAP_CONNECT_FAILED', sanitize_error_details(str(exc)) or 'IMAP connection failed', 'IMAPConnectError', 502, '')}
     finally:
         if mail:
             try:
@@ -1795,7 +1795,7 @@ def download_email_attachment_imap_result(account: str, client_id: str, refresh_
             'success': False,
             'error': build_error_payload(
                 'IMAP_TOKEN_FAILED',
-                '获取访问令牌失败',
+                'Failed to obtain access token',
                 'IMAPError',
                 401,
                 ''
@@ -1815,7 +1815,7 @@ def download_email_attachment_imap_result(account: str, client_id: str, refresh_
                 'success': False,
                 'error': build_error_payload(
                     'IMAP_FOLDER_NOT_FOUND',
-                    'IMAP 文件夹不存在或无权访问',
+                    'IMAP folder does not exist or access is denied',
                     'IMAPFolderError',
                     400,
                     {'folder': folder}
@@ -1828,7 +1828,7 @@ def download_email_attachment_imap_result(account: str, client_id: str, refresh_
                 'success': False,
                 'error': build_error_payload(
                     'ATTACHMENT_FETCH_FAILED',
-                    '获取附件失败',
+                    'Failed to fetch attachment',
                     'IMAPFetchError',
                     502,
                     {'message_id': str(message_id)}
@@ -1843,7 +1843,7 @@ def download_email_attachment_imap_result(account: str, client_id: str, refresh_
                 'success': False,
                 'error': build_error_payload(
                     'ATTACHMENT_NOT_FOUND',
-                    '附件不存在',
+                    'Attachment not found',
                     'NotFoundError',
                     404,
                     {'attachment_id': attachment_id}
@@ -1861,7 +1861,7 @@ def download_email_attachment_imap_result(account: str, client_id: str, refresh_
             'success': False,
             'error': build_error_payload(
                 'ATTACHMENT_FETCH_FAILED',
-                '获取附件失败',
+                'Failed to fetch attachment',
                 type(exc).__name__,
                 500,
                 str(exc)
@@ -1881,7 +1881,7 @@ def download_email_attachment_imap_generic_result(email_addr: str, imap_password
                                                   provider: str = 'custom', proxy_url: str = '') -> Dict[str, Any]:
     """使用通用 IMAP 下载邮件附件"""
     if not message_id or not attachment_id:
-        return {'success': False, 'error': build_error_payload('ATTACHMENT_INVALID', '附件参数不完整', 'ValidationError', 400, '')}
+        return {'success': False, 'error': build_error_payload('ATTACHMENT_INVALID', 'Attachment parameters are incomplete', 'ValidationError', 400, '')}
 
     mail = None
     try:
@@ -1913,7 +1913,7 @@ def download_email_attachment_imap_generic_result(email_addr: str, imap_password
                 'success': False,
                 'error': build_error_payload(
                     'IMAP_FOLDER_NOT_FOUND',
-                    'IMAP 文件夹不存在或无权访问',
+                    'IMAP folder does not exist or access is denied',
                     'IMAPFolderError',
                     400,
                     {
@@ -1932,7 +1932,7 @@ def download_email_attachment_imap_generic_result(email_addr: str, imap_password
                 'success': False,
                 'error': build_error_payload(
                     'ATTACHMENT_FETCH_FAILED',
-                    '获取附件失败',
+                    'Failed to fetch attachment',
                     'IMAPFetchError',
                     502,
                     {
@@ -1954,7 +1954,7 @@ def download_email_attachment_imap_generic_result(email_addr: str, imap_password
                 'success': False,
                 'error': build_error_payload(
                     'ATTACHMENT_FETCH_FAILED',
-                    '获取附件失败',
+                    'Failed to fetch attachment',
                     'IMAPFetchError',
                     502,
                     {
@@ -1972,7 +1972,7 @@ def download_email_attachment_imap_generic_result(email_addr: str, imap_password
                 'success': False,
                 'error': build_error_payload(
                     'ATTACHMENT_NOT_FOUND',
-                    '附件不存在',
+                    'Attachment not found',
                     'NotFoundError',
                     404,
                     {'attachment_id': attachment_id}
@@ -1990,7 +1990,7 @@ def download_email_attachment_imap_generic_result(email_addr: str, imap_password
             'success': False,
             'error': build_error_payload(
                 'IMAP_CONNECT_FAILED',
-                sanitize_error_details(str(exc)) or 'IMAP 连接失败',
+                sanitize_error_details(str(exc)) or 'IMAP connection failed',
                 'IMAPConnectError',
                 502,
                 ''
@@ -2030,7 +2030,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if not session.get('logged_in'):
             if request.is_json or request.path.startswith('/api/'):
-                return jsonify({'success': False, 'error': '请先登录', 'need_login': True}), 401
+                return jsonify({'success': False, 'error': 'Please log in first', 'need_login': True}), 401
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     decorated_function._requires_login = True
@@ -2044,15 +2044,15 @@ def api_key_required(f):
         # 从 Header 或查询参数获取 API Key
         api_key = request.headers.get('X-API-Key') or request.args.get('api_key') or request.args.get('apikey')
         if not api_key:
-            return jsonify({'success': False, 'error': '缺少 API Key，请通过 Header X-API-Key 或查询参数 api_key 提供'}), 401
+            return jsonify({'success': False, 'error': 'Missing API Key. Provide it through the X-API-Key header or the api_key query parameter'}), 401
 
         # 验证 API Key
         stored_key = get_external_api_key()
         if not stored_key:
-            return jsonify({'success': False, 'error': '未配置对外 API Key，请在系统设置中配置'}), 403
+            return jsonify({'success': False, 'error': 'External API Key is not configured. Please configure it in system settings'}), 403
 
         if api_key != stored_key:
-            return jsonify({'success': False, 'error': 'API Key 无效'}), 401
+            return jsonify({'success': False, 'error': 'Invalid API Key'}), 401
 
         return f(*args, **kwargs)
     decorated_function._requires_api_key = True
@@ -2063,9 +2063,9 @@ def assert_endpoint_protection(endpoint: str, protection_attr: str, protection_n
     """确保动态替换后的 endpoint 仍然保留必须的鉴权保护。"""
     view_func = app.view_functions.get(endpoint)
     if view_func is None:
-        raise RuntimeError(f'Endpoint 未注册: {endpoint}')
+        raise RuntimeError(f'Endpoint not registered: {endpoint}')
     if not getattr(view_func, protection_attr, False):
-        raise RuntimeError(f'Endpoint {endpoint} 缺少 {protection_name} 保护')
+        raise RuntimeError(f'Endpoint {endpoint} is missing {protection_name} protection')
 
 
 # ==================== Flask 路由 ====================

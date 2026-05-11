@@ -737,9 +737,9 @@ def api_trigger_forwarding_check():
     """手动触发一次转发检查"""
     try:
         process_forwarding_job()
-        return jsonify({'success': True, 'message': '已触发一次转发检查，请查看转发历史或容器日志'})
+        return jsonify({'success': True, 'message': 'Forwarding check triggered. Review forwarding history or container logs for details'})
     except Exception as exc:
-        return jsonify({'success': False, 'error': f'触发转发检查失败: {str(exc)}'})
+        return jsonify({'success': False, 'error': f'Failed to trigger forwarding check: {str(exc)}'})
 
 
 @app.route('/api/accounts/<int:account_id>/forwarding/reset-cursor', methods=['POST'])
@@ -748,7 +748,7 @@ def api_reset_account_forward_cursor(account_id):
     """回退或清空单个账号的转发游标，并可选触发一次重扫。"""
     account = get_account_by_id(account_id)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'}), 404
+        return jsonify({'success': False, 'error': 'Account not found'}), 404
 
     data = request.json or {}
     mode = str(data.get('mode', 'window') or 'window')
@@ -758,10 +758,10 @@ def api_reset_account_forward_cursor(account_id):
     try:
         cursor_value, reset_message, effective_lookback = build_forward_cursor_reset(account, mode, lookback_minutes)
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': '回退时间参数无效'}), 400
+        return jsonify({'success': False, 'error': 'Invalid lookback_minutes value'}), 400
 
     if not set_account_forward_cursor(account_id, cursor_value):
-        return jsonify({'success': False, 'error': '重置转发游标失败'}), 500
+        return jsonify({'success': False, 'error': 'Failed to reset the forwarding cursor'}), 500
 
     triggered = False
     if trigger_check:
@@ -770,7 +770,7 @@ def api_reset_account_forward_cursor(account_id):
 
     action_message = reset_message
     if triggered:
-        action_message += '，并已立即触发一次转发检查'
+        action_message += ', and an immediate forwarding check was triggered'
 
     return jsonify({
         'success': True,
@@ -790,39 +790,39 @@ def api_test_forward_channel():
     channel = str(data.get('channel', '') or '').strip().lower()
     config = data.get('config', {}) or {}
 
-    subject = f'[测试消息] 转发链路检测 {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+    subject = f'[Test Message] Forwarding pipeline check {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     body_text = (
-        '这是一条由系统主动发送的测试消息。\n'
-        '如果你收到了这条消息，说明当前转发链路配置可用。'
+        'This is a test message sent automatically by the system.\n'
+        'If you received it, the current forwarding pipeline configuration is working.'
     )
     body_html = (
-        '<p>这是一条由系统主动发送的测试消息。</p>'
-        '<p>如果你收到了这条消息，说明当前转发链路配置可用。</p>'
+        '<p>This is a test message sent automatically by the system.</p>'
+        '<p>If you received it, the current forwarding pipeline configuration is working.</p>'
     )
-    telegram_text = f'{subject}\n\n这是一条由系统主动发送的测试消息。\n如果你收到了这条消息，说明当前转发链路配置可用。'
+    telegram_text = f'{subject}\n\nThis is a test message sent automatically by the system.\nIf you received it, the current forwarding pipeline configuration is working.'
 
     try:
         if channel == 'smtp':
             smtp_config = config.get('smtp', {}) if isinstance(config, dict) else {}
             if not send_forward_email_with_config(smtp_config, subject, body_text, body_html):
-                return jsonify({'success': False, 'error': 'SMTP 测试发送失败，请检查当前表单配置'})
-            return jsonify({'success': True, 'message': 'SMTP 测试消息已发送，请检查收件箱'})
+                return jsonify({'success': False, 'error': 'SMTP test send failed. Please check the current form configuration'})
+            return jsonify({'success': True, 'message': 'SMTP test message sent. Please check the inbox'})
 
         if channel == 'telegram':
             telegram_config = config.get('telegram', {}) if isinstance(config, dict) else {}
             if not send_forward_telegram_with_config(telegram_config, telegram_text):
-                return jsonify({'success': False, 'error': 'Telegram 测试发送失败，请检查当前表单配置'})
-            return jsonify({'success': True, 'message': 'Telegram 测试消息已发送，请检查目标会话'})
+                return jsonify({'success': False, 'error': 'Telegram test send failed. Please check the current form configuration'})
+            return jsonify({'success': True, 'message': 'Telegram test message sent. Please check the target chat'})
 
         if channel == 'wecom':
             wecom_config = config.get('wecom', {}) if isinstance(config, dict) else {}
             if not send_forward_wecom_with_config(wecom_config, telegram_text):
-                return jsonify({'success': False, 'error': '企业微信测试发送失败，请检查当前表单配置'})
-            return jsonify({'success': True, 'message': '企业微信测试消息已发送，请检查群机器人所在会话'})
+                return jsonify({'success': False, 'error': 'WeCom test send failed. Please check the current form configuration'})
+            return jsonify({'success': True, 'message': 'WeCom test message sent. Please check the chat used by the group bot'})
 
-        return jsonify({'success': False, 'error': '未知转发渠道'})
+        return jsonify({'success': False, 'error': 'Unknown forwarding channel'})
     except Exception as exc:
-        return jsonify({'success': False, 'error': f'测试失败: {str(exc)}'})
+        return jsonify({'success': False, 'error': f'Test failed: {str(exc)}'})
 
 
 def record_webdav_backup_result(status: str, message: str, filename: str = '') -> None:
@@ -859,9 +859,9 @@ def api_test_webdav_backup():
     base_url = config['url']
     parsed_url = urlparse(base_url)
     if not base_url:
-        return jsonify({'success': False, 'error': '请先填写 WebDAV 目录 URL'})
+        return jsonify({'success': False, 'error': 'Please enter the WebDAV directory URL first'})
     if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
-        return jsonify({'success': False, 'error': 'WebDAV 目录 URL 必须是有效的 http(s) 地址'})
+        return jsonify({'success': False, 'error': 'The WebDAV directory URL must be a valid http(s) address'})
 
     filename = f"outlookemail_webdav_test_{datetime.now(get_app_timezone_info()).strftime('%Y%m%d_%H%M%S')}.txt"
     upload_url = build_webdav_upload_url(base_url, filename)
@@ -882,7 +882,7 @@ def api_test_webdav_backup():
         if response.status_code not in (200, 201, 204):
             return jsonify({
                 'success': False,
-                'error': f'WebDAV 测试上传失败：HTTP {response.status_code}',
+                'error': f'WebDAV test upload failed: HTTP {response.status_code}',
                 'status_code': response.status_code,
             })
 
@@ -894,18 +894,18 @@ def api_test_webdav_backup():
                 timeout=HTTP_REQUEST_TIMEOUT,
             )
             if cleanup_response.status_code not in (200, 202, 204, 404):
-                cleanup_message = f'；测试文件已上传，但清理返回 HTTP {cleanup_response.status_code}'
+                cleanup_message = f'; the test file was uploaded, but cleanup returned HTTP {cleanup_response.status_code}'
         except Exception as cleanup_exc:
-            cleanup_message = f'；测试文件已上传，但清理失败：{str(cleanup_exc)}'
+            cleanup_message = f'; the test file was uploaded, but cleanup failed: {str(cleanup_exc)}'
 
         return jsonify({
             'success': True,
-            'message': f'WebDAV 测试成功，目录可写{cleanup_message}',
+            'message': f'WebDAV test succeeded. The directory is writable{cleanup_message}',
             'filename': filename,
             'status_code': response.status_code,
         })
     except Exception as exc:
-        return jsonify({'success': False, 'error': f'WebDAV 测试失败：{str(exc)}'})
+        return jsonify({'success': False, 'error': f'WebDAV test failed: {str(exc)}'})
 
 
 def upload_webdav_backup_with_config(base_url: str, username: str, password: str) -> Dict[str, Any]:
@@ -913,17 +913,17 @@ def upload_webdav_backup_with_config(base_url: str, username: str, password: str
     try:
         parsed_url = urlparse(base_url)
         if not base_url:
-            message = 'WebDAV 目录 URL 为空'
+            message = 'The WebDAV directory URL is empty'
             record_webdav_backup_result('failed', message)
             return {'success': False, 'error': message}
         if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
-            message = 'WebDAV 目录 URL 必须是有效的 http(s) 地址'
+            message = 'The WebDAV directory URL must be a valid http(s) address'
             record_webdav_backup_result('failed', message)
             return {'success': False, 'error': message}
 
         export_payload = build_all_groups_export_content()
         if export_payload['total_count'] == 0:
-            message = '没有可备份的邮箱账号'
+            message = 'There are no accounts available to back up'
             record_webdav_backup_result('failed', message)
             return {'success': False, 'error': message}
 
@@ -939,11 +939,11 @@ def upload_webdav_backup_with_config(base_url: str, username: str, password: str
         )
 
         if response.status_code not in (200, 201, 204):
-            message = f'WebDAV 上传失败：HTTP {response.status_code}'
+            message = f'WebDAV upload failed: HTTP {response.status_code}'
             record_webdav_backup_result('failed', message, filename)
             return {'success': False, 'error': message, 'status_code': response.status_code}
 
-        message = f"WebDAV 备份成功：{filename}"
+        message = f"WebDAV backup succeeded: {filename}"
         record_webdav_backup_result('success', message, filename)
         log_audit('backup', 'webdav', None, f"备份全部分组，共 {export_payload['total_count']} 个账号")
         return {
@@ -954,7 +954,7 @@ def upload_webdav_backup_with_config(base_url: str, username: str, password: str
             'status_code': response.status_code,
         }
     except Exception as exc:
-        message = f'WebDAV 备份失败：{str(exc)}'
+        message = f'WebDAV backup failed: {str(exc)}'
         record_webdav_backup_result('failed', message, filename)
         return {'success': False, 'error': message}
 
@@ -965,9 +965,9 @@ def api_upload_webdav_backup():
     data = request.json or {}
     login_password = str(data.get('login_password') or '')
     if not login_password:
-        return jsonify({'success': False, 'error': '手动上传备份需要输入登录密码'})
+        return jsonify({'success': False, 'error': 'Login password is required for manual backup upload'})
     if not verify_login_password(login_password):
-        return jsonify({'success': False, 'error': '登录密码错误'})
+        return jsonify({'success': False, 'error': 'Incorrect login password'})
 
     config = normalize_webdav_backup_config(data.get('config', {}) if isinstance(data.get('config'), dict) else {})
     if not config['url']:
@@ -978,7 +978,7 @@ def api_upload_webdav_backup():
         }
 
     if not webdav_backup_run_lock.acquire(blocking=False):
-        return jsonify({'success': False, 'error': 'WebDAV 备份正在执行中'})
+        return jsonify({'success': False, 'error': 'A WebDAV backup is already running'})
 
     try:
         result = upload_webdav_backup_with_config(config['url'], config['username'], config['password'])
@@ -988,25 +988,25 @@ def api_upload_webdav_backup():
     if result.get('success'):
         return jsonify({
             'success': True,
-            'message': result.get('message') or 'WebDAV 备份已上传',
+            'message': result.get('message') or 'WebDAV backup uploaded',
             'filename': result.get('filename', ''),
             'total_count': result.get('total_count', 0),
             'status_code': result.get('status_code'),
         })
     return jsonify({
         'success': False,
-        'error': result.get('error', 'WebDAV 备份上传失败'),
+        'error': result.get('error', 'WebDAV backup upload failed'),
         'status_code': result.get('status_code'),
     })
 
 
 def run_webdav_backup() -> Dict[str, Any]:
     if not webdav_backup_run_lock.acquire(blocking=False):
-        return {'success': False, 'error': 'WebDAV 备份正在执行中'}
+        return {'success': False, 'error': 'A WebDAV backup is already running'}
 
     try:
         if get_setting('webdav_backup_enabled', 'false').lower() != 'true':
-            return {'success': False, 'error': 'WebDAV 备份未启用'}
+            return {'success': False, 'error': 'WebDAV backup is not enabled'}
 
         base_url = get_setting('webdav_backup_url', '').strip()
         username = get_setting('webdav_backup_username', '').strip()
@@ -1290,14 +1290,14 @@ def api_update_account_v2(account_id):
     try:
         imap_port = int(data.get('imap_port', 993) or 993)
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'IMAP 端口无效'})
+        return jsonify({'success': False, 'error': 'Invalid IMAP port'})
 
     provider_meta = get_provider_meta(provider, email_addr)
     is_outlook = account_type == 'outlook' or provider_meta['key'] == 'outlook'
 
     if is_outlook:
         if not email_addr or not client_id or not refresh_token:
-            return jsonify({'success': False, 'error': '邮箱、Client ID 和 Refresh Token 不能为空'})
+            return jsonify({'success': False, 'error': 'Email, Client ID, and Refresh Token are required'})
         account_type = 'outlook'
         provider = 'outlook'
         imap_host = IMAP_SERVER_NEW
@@ -1305,7 +1305,7 @@ def api_update_account_v2(account_id):
         imap_password = ''
     else:
         if not email_addr or not imap_password:
-            return jsonify({'success': False, 'error': '邮箱和 IMAP 密码不能为空'})
+            return jsonify({'success': False, 'error': 'Email and IMAP password are required'})
         account_type = 'imap'
         provider = provider_meta['key']
         client_id = ''
@@ -1313,7 +1313,7 @@ def api_update_account_v2(account_id):
         password = ''
         if provider == 'custom':
             if not imap_host:
-                return jsonify({'success': False, 'error': '自定义 IMAP 必须填写服务器地址'})
+                return jsonify({'success': False, 'error': 'A server address is required for custom IMAP'})
         else:
             imap_host = provider_meta.get('imap_host', '')
             imap_port = int(provider_meta.get('imap_port', 993) or 993)
@@ -1321,7 +1321,7 @@ def api_update_account_v2(account_id):
     if aliases_provided:
         _, alias_errors = validate_account_aliases(account_id, email_addr, aliases)
         if alias_errors:
-            return jsonify({'success': False, 'error': '；'.join(alias_errors), 'errors': alias_errors})
+            return jsonify({'success': False, 'error': '; '.join(alias_errors), 'errors': alias_errors})
 
     if update_account(
         account_id,
@@ -1346,10 +1346,10 @@ def api_update_account_v2(account_id):
             alias_success, cleaned_aliases, alias_errors = replace_account_aliases(account_id, email_addr, aliases, db)
             if not alias_success:
                 db.rollback()
-                return jsonify({'success': False, 'error': '；'.join(alias_errors), 'errors': alias_errors})
+                return jsonify({'success': False, 'error': '; '.join(alias_errors), 'errors': alias_errors})
             db.commit()
-        return jsonify({'success': True, 'message': '账号更新成功', 'aliases': cleaned_aliases})
-    return jsonify({'success': False, 'error': '更新失败'})
+        return jsonify({'success': True, 'message': 'Account updated successfully', 'aliases': cleaned_aliases})
+    return jsonify({'success': False, 'error': 'Update failed'})
 
 
 def api_get_emails_v2(email_addr):
@@ -1358,7 +1358,7 @@ def api_get_emails_v2(email_addr):
     if not account:
         error_payload = build_error_payload(
             "ACCOUNT_NOT_FOUND",
-            "账号不存在",
+            "Account not found",
             "NotFoundError",
             404,
             f"email={requested_email}"
@@ -1395,18 +1395,18 @@ def api_external_get_emails_v2():
     keyword = get_query_arg_preserve_plus('keyword', '').strip().lower()
 
     if not email_addr:
-        return jsonify({'success': False, 'error': '缺少 email 参数'}), 400
+        return jsonify({'success': False, 'error': 'Missing email parameter'}), 400
 
     valid_folders = sorted(VALID_MAIL_FOLDERS)
     if folder not in VALID_MAIL_FOLDERS:
-        return jsonify({'success': False, 'error': f'folder 参数无效，仅支持 {", ".join(valid_folders)}'}), 400
+        return jsonify({'success': False, 'error': f'Invalid folder parameter. Supported values: {", ".join(valid_folders)}'}), 400
 
     if top > 50:
         top = 50
 
     account = resolve_account_for_email_api(email_addr)
     if not account:
-        return jsonify({'success': False, 'error': '邮箱账号不存在'}), 404
+        return jsonify({'success': False, 'error': 'Email account not found'}), 404
     result = fetch_account_emails(account, folder, skip, top)
     if result.get('success'):
         if subject_contains or from_contains or keyword:
@@ -1483,7 +1483,7 @@ assert_endpoint_protection('api_external_get_emails', '_requires_api_key', 'api_
 def bad_request(error):
     """处理400错误"""
     safe_console_print(f"400 Bad Request: {error}")
-    return jsonify({'success': False, 'error': '请求格式错误'}), 400
+    return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
 
 @app.errorhandler(Exception)

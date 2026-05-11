@@ -25,7 +25,7 @@ def login():
             if not allowed:
                 return jsonify({
                     'success': False,
-                    'error': f'登录失败次数过多，请在 {remaining_time} 秒后重试'
+                    'error': f'Too many failed login attempts. Try again in {remaining_time} seconds'
                 }), 429
 
             data = request.json if request.is_json else request.form
@@ -41,16 +41,16 @@ def login():
                 session['logged_in'] = True
                 session.permanent = True
                 session.modified = True  # 确保 Flask-Session 保存 session
-                return jsonify({'success': True, 'message': '登录成功'})
+                return jsonify({'success': True, 'message': 'Login successful'})
             else:
                 # 登录失败，记录失败次数
                 record_login_failure(client_ip)
-                return jsonify({'success': False, 'error': '密码错误'})
+                return jsonify({'success': False, 'error': 'Incorrect password'})
         except Exception as e:
             print(f"Login error: {e}")
             import traceback
             traceback.print_exc()
-            return jsonify({'success': False, 'error': f'登录处理失败: {str(e)}'}), 500
+            return jsonify({'success': False, 'error': f'Login failed: {str(e)}'}), 500
 
     # GET 请求返回登录页面
     return render_template('login.html')
@@ -150,7 +150,7 @@ def api_get_groups():
     movable_position = 1
     # 添加每个分组的邮箱数量
     for group in groups:
-        if group['name'] == '临时邮箱':
+        if is_temp_email_group_name(group['name']):
             # 临时邮箱分组从 temp_emails 表获取数量
             group['account_count'] = get_temp_email_count()
             group['sort_position'] = None
@@ -167,7 +167,7 @@ def api_get_group(group_id):
     """获取单个分组"""
     group = get_group_by_id(group_id)
     if not group:
-        return jsonify({'success': False, 'error': '分组不存在'})
+        return jsonify({'success': False, 'error': 'Group not found'})
     group['account_count'] = get_group_account_count(group_id)
     group['sort_position'] = get_group_sort_position(group_id)
     return jsonify({'success': True, 'group': group})
@@ -187,18 +187,18 @@ def api_add_group():
     sort_position_raw = data.get('sort_position')
 
     if not name:
-        return jsonify({'success': False, 'error': '分组名称不能为空'})
+        return jsonify({'success': False, 'error': 'Group name is required'})
 
     try:
         sort_position = int(sort_position_raw) if sort_position_raw not in (None, '') else None
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': '排序位置无效'})
+        return jsonify({'success': False, 'error': 'Invalid sort position'})
 
     group_id = add_group(name, description, color, proxy_url, fallback_proxy_url_1, fallback_proxy_url_2, sort_position)
     if group_id:
-        return jsonify({'success': True, 'message': '分组创建成功', 'group_id': group_id})
+        return jsonify({'success': True, 'message': 'Group created successfully', 'group_id': group_id})
     else:
-        return jsonify({'success': False, 'error': '分组名称已存在'})
+        return jsonify({'success': False, 'error': 'Group name already exists'})
 
 
 @app.route('/api/groups/<int:group_id>', methods=['PUT'])
@@ -215,30 +215,30 @@ def api_update_group(group_id):
     sort_position_raw = data.get('sort_position')
 
     if not name:
-        return jsonify({'success': False, 'error': '分组名称不能为空'})
+        return jsonify({'success': False, 'error': 'Group name is required'})
 
     try:
         sort_position = int(sort_position_raw) if sort_position_raw not in (None, '') else None
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': '排序位置无效'})
+        return jsonify({'success': False, 'error': 'Invalid sort position'})
 
     if update_group(group_id, name, description, color, proxy_url, fallback_proxy_url_1, fallback_proxy_url_2, sort_position):
-        return jsonify({'success': True, 'message': '分组更新成功'})
+        return jsonify({'success': True, 'message': 'Group updated successfully'})
     else:
-        return jsonify({'success': False, 'error': '更新失败'})
+        return jsonify({'success': False, 'error': 'Update failed'})
 
 
 @app.route('/api/groups/<int:group_id>', methods=['DELETE'])
 @login_required
 def api_delete_group(group_id):
     """删除分组"""
-    if group_id == 1:
-        return jsonify({'success': False, 'error': '默认分组不能删除'})
+    if group_id == get_default_group_id():
+        return jsonify({'success': False, 'error': 'The default group cannot be deleted'})
     
     if delete_group(group_id):
-        return jsonify({'success': True, 'message': '分组已删除，邮箱已移至默认分组'})
+        return jsonify({'success': True, 'message': 'Group deleted. Accounts were moved to the default group'})
     else:
-        return jsonify({'success': False, 'error': '删除失败'})
+        return jsonify({'success': False, 'error': 'Delete failed'})
 
 
 @app.route('/api/groups/reorder', methods=['PUT'])
@@ -249,12 +249,12 @@ def api_reorder_groups():
     group_ids = data.get('group_ids', [])
 
     if not isinstance(group_ids, list) or not all(isinstance(group_id, int) for group_id in group_ids):
-        return jsonify({'success': False, 'error': '分组排序参数无效'})
+        return jsonify({'success': False, 'error': 'Invalid group reorder payload'})
 
     if reorder_groups(group_ids):
-        return jsonify({'success': True, 'message': '分组排序已更新'})
+        return jsonify({'success': True, 'message': 'Group order updated'})
     else:
-        return jsonify({'success': False, 'error': '分组排序失败'})
+        return jsonify({'success': False, 'error': 'Failed to update group order'})
 
 
 @app.route('/api/groups/<int:group_id>/export')
@@ -265,28 +265,28 @@ def api_export_group(group_id):
     verify_token = request.args.get('verify_token')
     import time
     if not verify_token or verify_token not in export_verify_tokens:
-        return jsonify({'success': False, 'error': '需要二次验证', 'need_verify': True}), 401
+        return jsonify({'success': False, 'error': 'Secondary verification required', 'need_verify': True}), 401
     
     token_data = export_verify_tokens[verify_token]
     if token_data['expires'] < time.time():
         del export_verify_tokens[verify_token]
-        return jsonify({'success': False, 'error': '验证已过期，请重新验证', 'need_verify': True}), 401
+        return jsonify({'success': False, 'error': 'Verification expired. Please verify again', 'need_verify': True}), 401
     
     # 清除验证token（一次性使用）
     del export_verify_tokens[verify_token]
 
     group = get_group_by_id(group_id)
     if not group:
-        return jsonify({'success': False, 'error': '分组不存在'})
+        return jsonify({'success': False, 'error': 'Group not found'})
 
     lines = []
-    is_temp_group = group['name'] == '临时邮箱'
+    is_temp_group = is_temp_email_group_name(group['name'])
 
     if is_temp_group:
         # 临时邮箱分组从 temp_emails 表获取数据
         temp_emails = load_temp_emails()
         if not temp_emails:
-            return jsonify({'success': False, 'error': '该分组下没有临时邮箱'})
+            return jsonify({'success': False, 'error': 'No temp emails were found in this group'})
 
         lines.append(group['name'])
 
@@ -317,7 +317,7 @@ def api_export_group(group_id):
         # 普通分组从 accounts 表获取数据
         accounts = load_accounts(group_id)
         if not accounts:
-            return jsonify({'success': False, 'error': '该分组下没有邮箱账号'})
+            return jsonify({'success': False, 'error': 'No accounts were found in this group'})
 
         lines.append(group['name'])
         log_audit('export', 'group', str(group_id), f"导出分组 '{group['name']}' 的 {len(accounts)} 个账号")
@@ -362,7 +362,7 @@ def build_group_export_content(group_ids: List[int]) -> Dict[str, Any]:
         if not group:
             continue
 
-        if group['name'] == '临时邮箱':
+        if is_temp_email_group_name(group['name']):
             temp_emails = load_temp_emails()
             if not temp_emails:
                 continue
@@ -425,12 +425,12 @@ def api_export_all_accounts():
     verify_token = request.args.get('verify_token')
     import time
     if not verify_token or verify_token not in export_verify_tokens:
-        return jsonify({'success': False, 'error': '需要二次验证', 'need_verify': True}), 401
+        return jsonify({'success': False, 'error': 'Secondary verification required', 'need_verify': True}), 401
     
     token_data = export_verify_tokens[verify_token]
     if token_data['expires'] < time.time():
         del export_verify_tokens[verify_token]
-        return jsonify({'success': False, 'error': '验证已过期，请重新验证', 'need_verify': True}), 401
+        return jsonify({'success': False, 'error': 'Verification expired. Please verify again', 'need_verify': True}), 401
     
     # 清除验证token（一次性使用）
     del export_verify_tokens[verify_token]
@@ -440,7 +440,7 @@ def api_export_all_accounts():
     accounts = load_accounts()
 
     if not accounts:
-        return jsonify({'success': False, 'error': '没有邮箱账号'})
+        return jsonify({'success': False, 'error': 'No accounts found'})
 
     # 记录审计日志
     log_audit('export', 'all_accounts', None, f"导出所有账号，共 {len(accounts)} 个")
@@ -478,14 +478,14 @@ def api_export_selected_accounts():
     # 检查二次验证token（使用内存存储）
     import time
     if not verify_token or verify_token not in export_verify_tokens:
-        return jsonify({'success': False, 'error': '需要二次验证', 'need_verify': True}), 401
+        return jsonify({'success': False, 'error': 'Secondary verification required', 'need_verify': True}), 401
     
     token_data = export_verify_tokens[verify_token]
     
     # 检查是否过期
     if token_data['expires'] < time.time():
         del export_verify_tokens[verify_token]
-        return jsonify({'success': False, 'error': '验证已过期，请重新验证', 'need_verify': True}), 401
+        return jsonify({'success': False, 'error': 'Verification expired. Please verify again', 'need_verify': True}), 401
     
     # 可选：验证 IP 一致性（增强安全性）
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
@@ -499,13 +499,13 @@ def api_export_selected_accounts():
     del export_verify_tokens[verify_token]
 
     if not group_ids:
-        return jsonify({'success': False, 'error': '请选择要导出的分组'})
+        return jsonify({'success': False, 'error': 'Please select groups to export'})
 
     export_payload = build_group_export_content(group_ids)
     total_count = export_payload['total_count']
 
     if total_count == 0:
-        return jsonify({'success': False, 'error': '选中的分组下没有邮箱账号'})
+        return jsonify({'success': False, 'error': 'No accounts were found in the selected groups'})
 
     # 记录审计日志
     log_audit('export', 'selected_groups', ','.join(map(str, export_payload['group_ids'])), f"导出选中分组的 {total_count} 个账号")
@@ -539,10 +539,10 @@ def api_generate_export_verify_token():
     result = cursor.fetchone()
 
     if not result:
-        return jsonify({'success': False, 'error': '系统配置错误'})
+        return jsonify({'success': False, 'error': 'System configuration error'})
 
     if not verify_login_password(password):
-        return jsonify({'success': False, 'error': '密码错误'})
+        return jsonify({'success': False, 'error': 'Incorrect password'})
 
     # 生成一次性验证token
     verify_token = secrets.token_urlsafe(32)
@@ -602,6 +602,10 @@ def build_account_list_response(accounts: List[Dict[str, Any]], total: int,
     }
 
 
+def translate_external_group_name(group_name: Any) -> str:
+    return normalize_system_group_name(group_name)
+
+
 @app.route('/api/accounts', methods=['GET'])
 @login_required
 def api_get_accounts():
@@ -641,14 +645,14 @@ def api_external_get_accounts():
 
     safe_accounts = []
     for acc in accounts:
-        safe_accounts.append(
-            serialize_account_summary(
-                acc,
-                {},
-                include_client_meta=False,
-                include_imap_meta=False
-            )
+        payload = serialize_account_summary(
+            acc,
+            {},
+            include_client_meta=False,
+            include_imap_meta=False
         )
+        payload['group_name'] = translate_external_group_name(payload.get('group_name', ''))
+        safe_accounts.append(payload)
 
     return jsonify({
         'success': True,
@@ -670,7 +674,7 @@ def api_get_projects():
 def api_get_project(project_key):
     project = get_project_by_key(project_key)
     if not project:
-        return jsonify({'success': False, 'error': '项目不存在'}), 404
+        return jsonify({'success': False, 'error': 'Project not found'}), 404
     return jsonify({'success': True, 'data': {'project': project}})
 
 
@@ -710,7 +714,7 @@ def api_start_project():
                 ensure_ascii=False,
             ),
         )
-        return jsonify({'success': True, 'message': '项目已启动', 'data': project})
+        return jsonify({'success': True, 'message': 'Project started', 'data': project})
     except ValueError as exc:
         return jsonify({'success': False, 'error': str(exc)}), 400
     except Exception as exc:
@@ -726,7 +730,7 @@ def api_get_project_accounts(project_key):
     keyword = request.args.get('keyword', '').strip()
     result = load_project_accounts(project_key, status=status, group_id=group_id, provider=provider, keyword=keyword)
     if not result:
-        return jsonify({'success': False, 'error': '项目不存在'}), 404
+        return jsonify({'success': False, 'error': 'Project not found'}), 404
     return jsonify({'success': True, 'data': result})
 
 
@@ -745,7 +749,7 @@ def api_claim_project_account(project_key):
         return jsonify({'success': False, 'error': str(exc)}), 500
 
     if not account:
-        return jsonify({'success': False, 'error': '没有可领取的项目邮箱'}), 200
+        return jsonify({'success': False, 'error': 'No project accounts are available to claim'}), 200
     return jsonify({'success': True, 'data': account})
 
 
@@ -759,11 +763,11 @@ def api_complete_project_success(project_key):
     task_id = (data.get('task_id') or '').strip()
     detail = sanitize_input(data.get('detail', ''), max_length=500)
     if not account_id or not claim_token:
-        return jsonify({'success': False, 'error': '缺少 account_id 或 claim_token'}), 400
+        return jsonify({'success': False, 'error': 'Missing account_id or claim_token'}), 400
 
     if complete_project_account_success(project_key, int(account_id), claim_token, caller_id, task_id, detail):
-        return jsonify({'success': True, 'message': '项目账号已标记成功'})
-    return jsonify({'success': False, 'error': '项目账号状态不匹配'}), 400
+        return jsonify({'success': True, 'message': 'Project account marked as successful'})
+    return jsonify({'success': False, 'error': 'Project account status mismatch'}), 400
 
 
 @app.route('/api/projects/<project_key>/complete-failed', methods=['POST'])
@@ -776,11 +780,11 @@ def api_complete_project_failed(project_key):
     task_id = (data.get('task_id') or '').strip()
     detail = sanitize_input(data.get('detail', ''), max_length=500)
     if not account_id or not claim_token:
-        return jsonify({'success': False, 'error': '缺少 account_id 或 claim_token'}), 400
+        return jsonify({'success': False, 'error': 'Missing account_id or claim_token'}), 400
 
     if complete_project_account_failed(project_key, int(account_id), claim_token, caller_id, task_id, detail):
-        return jsonify({'success': True, 'message': '项目账号已标记失败'})
-    return jsonify({'success': False, 'error': '项目账号状态不匹配'}), 400
+        return jsonify({'success': True, 'message': 'Project account marked as failed'})
+    return jsonify({'success': False, 'error': 'Project account status mismatch'}), 400
 
 
 @app.route('/api/projects/<project_key>/release', methods=['POST'])
@@ -793,11 +797,11 @@ def api_release_project_account(project_key):
     task_id = (data.get('task_id') or '').strip()
     detail = sanitize_input(data.get('detail', ''), max_length=500)
     if not account_id or not claim_token:
-        return jsonify({'success': False, 'error': '缺少 account_id 或 claim_token'}), 400
+        return jsonify({'success': False, 'error': 'Missing account_id or claim_token'}), 400
 
     if release_project_account(project_key, int(account_id), claim_token, caller_id, task_id, detail):
-        return jsonify({'success': True, 'message': '项目账号已释放'})
-    return jsonify({'success': False, 'error': '项目账号状态不匹配'}), 400
+        return jsonify({'success': True, 'message': 'Project account released'})
+    return jsonify({'success': False, 'error': 'Project account status mismatch'}), 400
 
 
 @app.route('/api/projects/<project_key>/reset-failed', methods=['POST'])
@@ -807,11 +811,11 @@ def api_reset_project_failed(project_key):
     account_id = data.get('account_id')
     detail = sanitize_input(data.get('detail', ''), max_length=500)
     if not account_id:
-        return jsonify({'success': False, 'error': '缺少 account_id'}), 400
+        return jsonify({'success': False, 'error': 'Missing account_id'}), 400
 
     if reset_project_account_failed(project_key, int(account_id), detail):
-        return jsonify({'success': True, 'message': '失败邮箱已重置为可领取'})
-    return jsonify({'success': False, 'error': '项目账号状态不匹配'}), 400
+        return jsonify({'success': True, 'message': 'Failed account reset to claimable state'})
+    return jsonify({'success': False, 'error': 'Project account status mismatch'}), 400
 
 
 @app.route('/api/projects/<project_key>/remove-account', methods=['POST'])
@@ -821,11 +825,11 @@ def api_remove_project_account(project_key):
     account_id = data.get('account_id')
     detail = sanitize_input(data.get('detail', ''), max_length=500)
     if not account_id:
-        return jsonify({'success': False, 'error': '缺少 account_id'}), 400
+        return jsonify({'success': False, 'error': 'Missing account_id'}), 400
 
     if remove_project_account(project_key, int(account_id), detail):
-        return jsonify({'success': True, 'message': '项目邮箱已移除'})
-    return jsonify({'success': False, 'error': '项目账号状态不匹配或正在领取中'}), 400
+        return jsonify({'success': True, 'message': 'Project account removed'})
+    return jsonify({'success': False, 'error': 'Project account status mismatch or account is currently claimed'}), 400
 
 
 @app.route('/api/projects/<project_key>/restore-account', methods=['POST'])
@@ -835,11 +839,11 @@ def api_restore_project_account(project_key):
     account_id = data.get('account_id')
     detail = sanitize_input(data.get('detail', ''), max_length=500)
     if not account_id:
-        return jsonify({'success': False, 'error': '缺少 account_id'}), 400
+        return jsonify({'success': False, 'error': 'Missing account_id'}), 400
 
     if restore_project_account(project_key, int(account_id), detail):
-        return jsonify({'success': True, 'message': '项目邮箱已恢复'})
-    return jsonify({'success': False, 'error': '项目账号状态不匹配'}), 400
+        return jsonify({'success': True, 'message': 'Project account restored'})
+    return jsonify({'success': False, 'error': 'Project account status mismatch'}), 400
 
 
 # ==================== 标签 API ====================
@@ -860,13 +864,13 @@ def api_add_tag():
     color = data.get('color', '#1a1a1a')
 
     if not name:
-        return jsonify({'success': False, 'error': '标签名称不能为空'})
+        return jsonify({'success': False, 'error': 'Tag name is required'})
 
     tag_id = add_tag(name, color)
     if tag_id:
         return jsonify({'success': True, 'tag': {'id': tag_id, 'name': name, 'color': color}})
     else:
-        return jsonify({'success': False, 'error': '标签名称已存在'})
+        return jsonify({'success': False, 'error': 'Tag name already exists'})
 
 
 @app.route('/api/tags/<int:tag_id>', methods=['DELETE'])
@@ -874,9 +878,9 @@ def api_add_tag():
 def api_delete_tag(tag_id):
     """删除标签"""
     if delete_tag(tag_id):
-        return jsonify({'success': True, 'message': '标签已删除'})
+        return jsonify({'success': True, 'message': 'Tag deleted'})
     else:
-        return jsonify({'success': False, 'error': '删除失败'})
+        return jsonify({'success': False, 'error': 'Delete failed'})
 
 
 @app.route('/api/accounts/tags', methods=['POST'])
@@ -889,7 +893,7 @@ def api_batch_manage_tags():
     action = data.get('action')  # add, remove
 
     if not account_ids or not tag_id or not action:
-        return jsonify({'success': False, 'error': '参数不完整'})
+        return jsonify({'success': False, 'error': 'Missing required parameters'})
 
     count = 0
     for acc_id in account_ids:
@@ -900,7 +904,7 @@ def api_batch_manage_tags():
             if remove_account_tag(acc_id, tag_id):
                 count += 1
 
-    return jsonify({'success': True, 'message': f'成功处理 {count} 个账号'})
+    return jsonify({'success': True, 'message': f'Processed {count} accounts successfully'})
 
 
 @app.route('/api/accounts/batch-update-group', methods=['POST'])
@@ -912,19 +916,19 @@ def api_batch_update_account_group():
     group_id = data.get('group_id')
 
     if not account_ids:
-        return jsonify({'success': False, 'error': '请选择要修改的账号'})
+        return jsonify({'success': False, 'error': 'Please select accounts to update'})
 
     if not group_id:
-        return jsonify({'success': False, 'error': '请选择目标分组'})
+        return jsonify({'success': False, 'error': 'Please select a target group'})
 
     # 验证分组存在
     group = get_group_by_id(group_id)
     if not group:
-        return jsonify({'success': False, 'error': '目标分组不存在'})
+        return jsonify({'success': False, 'error': 'Target group not found'})
 
     # 检查是否是临时邮箱分组（系统保留分组）
     if group.get('is_system'):
-        return jsonify({'success': False, 'error': '不能移动到系统分组'})
+        return jsonify({'success': False, 'error': 'Accounts cannot be moved into a system group'})
 
     # 批量更新
     db = get_db()
@@ -937,7 +941,7 @@ def api_batch_update_account_group():
         db.commit()
         return jsonify({
             'success': True,
-            'message': f'已将 {len(account_ids)} 个账号移动到「{group["name"]}」分组'
+            'message': f'Moved {len(account_ids)} accounts to group "{group["name"]}"'
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -951,7 +955,7 @@ def api_batch_update_account_forwarding():
     account_ids = data.get('account_ids', [])
 
     if 'forward_enabled' not in data:
-        return jsonify({'success': False, 'error': '缺少转发状态参数'})
+        return jsonify({'success': False, 'error': 'Missing forward_enabled parameter'})
 
     raw_forward_enabled = data.get('forward_enabled')
     if isinstance(raw_forward_enabled, str):
@@ -963,18 +967,18 @@ def api_batch_update_account_forwarding():
     if not result.get('success'):
         return jsonify(result)
 
-    action_label = '开启' if forward_enabled else '关闭'
+    action_label = 'enabled' if forward_enabled else 'disabled'
     updated_count = result.get('updated_count', 0)
     unchanged_count = result.get('unchanged_count', 0)
 
     if updated_count and unchanged_count:
-        message = f'已为 {updated_count} 个账号{action_label}转发，{unchanged_count} 个账号已处于该状态'
+        message = f'Forwarding {action_label} for {updated_count} accounts; {unchanged_count} accounts were already in that state'
     elif updated_count:
-        message = f'已为 {updated_count} 个账号{action_label}转发'
+        message = f'Forwarding {action_label} for {updated_count} accounts'
     elif unchanged_count:
-        message = f'所选 {unchanged_count} 个账号已处于{action_label}转发状态'
+        message = f'The selected {unchanged_count} accounts already had forwarding {action_label}'
     else:
-        message = '没有可更新的账号'
+        message = 'No accounts needed updating'
 
     return jsonify({
         'success': True,
@@ -1029,7 +1033,7 @@ def api_get_account(account_id):
     """获取单个账号详情"""
     account = get_account_by_id(account_id)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'})
+        return jsonify({'success': False, 'error': 'Account not found'})
     
     return jsonify({
         'success': True,
@@ -1050,7 +1054,7 @@ def api_get_account(account_id):
             'forward_enabled': bool(account.get('forward_enabled')),
             'forward_last_checked_at': account.get('forward_last_checked_at', ''),
             'group_id': account.get('group_id'),
-            'group_name': account.get('group_name', '默认分组'),
+            'group_name': normalize_system_group_name(account.get('group_name', DEFAULT_GROUP_NAME)) or DEFAULT_GROUP_NAME,
             'sort_order': normalize_account_sort_order(account.get('sort_order', 0)),
             'remark': account.get('remark', ''),
             'status': account.get('status', 'active'),
@@ -1075,7 +1079,7 @@ def parse_alias_payload(raw_aliases: Any) -> List[str]:
 def api_get_account_aliases_endpoint(account_id):
     account = get_account_by_id(account_id)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'}), 404
+        return jsonify({'success': False, 'error': 'Account not found'}), 404
     return jsonify({
         'success': True,
         'account_id': account_id,
@@ -1089,7 +1093,7 @@ def api_get_account_aliases_endpoint(account_id):
 def api_replace_account_aliases_endpoint(account_id):
     account = get_account_by_id(account_id)
     if not account:
-        return jsonify({'success': False, 'error': '账号不存在'}), 404
+        return jsonify({'success': False, 'error': 'Account not found'}), 404
 
     data = request.json or {}
     aliases = parse_alias_payload(data.get('aliases', []))
@@ -1097,12 +1101,12 @@ def api_replace_account_aliases_endpoint(account_id):
     success, cleaned_aliases, errors = replace_account_aliases(account_id, account.get('email', ''), aliases, db)
     if not success:
         db.rollback()
-        return jsonify({'success': False, 'error': '；'.join(errors), 'errors': errors}), 400
+        return jsonify({'success': False, 'error': '; '.join(errors), 'errors': errors}), 400
 
     db.commit()
     return jsonify({
         'success': True,
-        'message': f'已保存 {len(cleaned_aliases)} 个别名',
+        'message': f'Saved {len(cleaned_aliases)} aliases',
         'aliases': cleaned_aliases,
     })
 
@@ -1122,10 +1126,10 @@ def api_add_account():
     try:
         imap_port = int(data.get('imap_port', 993) or 993)
     except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'IMAP 端口无效'})
+        return jsonify({'success': False, 'error': 'Invalid IMAP port'})
     
     if not account_str:
-        return jsonify({'success': False, 'error': '请输入账号信息'})
+        return jsonify({'success': False, 'error': 'Please enter account data'})
     
     # 支持批量导入（多行）
     lines = account_str.strip().split('\n')
@@ -1148,14 +1152,14 @@ def api_add_account():
     skipped_count = result.get('skipped_count', 0)
     
     if added > 0:
-        message = f'成功添加 {added} 个账号'
+        message = f'Added {added} accounts successfully'
         detail_parts = []
         if skipped_count:
-            detail_parts.append(f'跳过重复 {skipped_count} 个')
+            detail_parts.append(f'skipped {skipped_count} duplicates')
         if invalid_count:
-            detail_parts.append(f'格式无效 {invalid_count} 行')
+            detail_parts.append(f'{invalid_count} invalid lines')
         if detail_parts:
-            message += '，' + '，'.join(detail_parts)
+            message += ': ' + ', '.join(detail_parts)
         return jsonify({
             'success': True,
             'message': message,
@@ -1166,7 +1170,7 @@ def api_add_account():
     else:
         return jsonify({
             'success': False,
-            'error': '没有新账号被添加（可能格式错误或已存在）',
+            'error': 'No new accounts were added. They may already exist or use an invalid format',
             'skipped_count': skipped_count,
             'invalid_count': invalid_count,
         })
@@ -1204,7 +1208,7 @@ def api_update_account(account_id):
     is_outlook = (account_type == 'outlook') or provider_meta['key'] == 'outlook'
     if is_outlook:
         if not email_addr or not client_id or not refresh_token:
-            return jsonify({'success': False, 'error': '邮箱、Client ID 和 Refresh Token 不能为空'})
+            return jsonify({'success': False, 'error': 'Email, Client ID, and Refresh Token are required'})
         account_type = 'outlook'
         provider = 'outlook'
         imap_host = IMAP_SERVER_NEW
@@ -1212,9 +1216,9 @@ def api_update_account(account_id):
         imap_password = ''
     else:
         if not email_addr or not imap_password:
-            return jsonify({'success': False, 'error': '邮箱和 IMAP 密码不能为空'})
+            return jsonify({'success': False, 'error': 'Email and IMAP password are required'})
         if provider_meta['key'] == 'custom' and not imap_host:
-            return jsonify({'success': False, 'error': '自定义 IMAP 必须填写服务器地址'})
+            return jsonify({'success': False, 'error': 'A server address is required for custom IMAP'})
         client_id = ''
         refresh_token = ''
         account_type = 'imap'
@@ -1224,12 +1228,12 @@ def api_update_account(account_id):
             imap_port = provider_meta.get('imap_port', 993)
 
     if False:
-        return jsonify({'success': False, 'error': '邮箱、Client ID 和 Refresh Token 不能为空'})
+        return jsonify({'success': False, 'error': 'Email, Client ID, and Refresh Token are required'})
 
     if aliases_provided:
         _, alias_errors = validate_account_aliases(account_id, email_addr, aliases)
         if alias_errors:
-            return jsonify({'success': False, 'error': '；'.join(alias_errors), 'errors': alias_errors})
+            return jsonify({'success': False, 'error': '; '.join(alias_errors), 'errors': alias_errors})
 
     if update_account(
         account_id, email_addr, password, client_id, refresh_token, group_id, sort_order, remark, status,
@@ -1241,11 +1245,11 @@ def api_update_account(account_id):
             alias_success, cleaned_aliases, alias_errors = replace_account_aliases(account_id, email_addr, aliases, db)
             if not alias_success:
                 db.rollback()
-                return jsonify({'success': False, 'error': '；'.join(alias_errors), 'errors': alias_errors})
+                return jsonify({'success': False, 'error': '; '.join(alias_errors), 'errors': alias_errors})
             db.commit()
-        return jsonify({'success': True, 'message': '账号更新成功', 'aliases': cleaned_aliases})
+        return jsonify({'success': True, 'message': 'Account updated successfully', 'aliases': cleaned_aliases})
     else:
-        return jsonify({'success': False, 'error': '更新失败'})
+        return jsonify({'success': False, 'error': 'Update failed'})
 
 
 def api_update_account_status(account_id: int, status: str):
@@ -1258,9 +1262,9 @@ def api_update_account_status(account_id: int, status: str):
             WHERE id = ?
         ''', (status, account_id))
         db.commit()
-        return jsonify({'success': True, 'message': '状态更新成功'})
+        return jsonify({'success': True, 'message': 'Status updated successfully'})
     except Exception:
-        return jsonify({'success': False, 'error': '更新失败'})
+        return jsonify({'success': False, 'error': 'Update failed'})
 
 
 @app.route('/api/accounts/<int:account_id>', methods=['DELETE'])
@@ -1270,7 +1274,7 @@ def api_delete_account(account_id):
     if delete_account_by_id(account_id):
         return jsonify({'success': True})
     else:
-        return jsonify({'success': False, 'error': '删除失败'})
+        return jsonify({'success': False, 'error': 'Delete failed'})
 
 
 @app.route('/api/accounts/email/<email_addr>', methods=['DELETE'])
@@ -1280,7 +1284,7 @@ def api_delete_account_by_email(email_addr):
     if delete_account_by_email(email_addr):
         return jsonify({'success': True})
     else:
-        return jsonify({'success': False, 'error': '删除失败'})
+        return jsonify({'success': False, 'error': 'Delete failed'})
 
 
 @app.route('/api/accounts/batch-delete', methods=['POST'])
@@ -1290,13 +1294,13 @@ def api_batch_delete_accounts():
     data = request.get_json(silent=True) or {}
     result = delete_accounts_by_ids(data.get('account_ids') or [])
     if not result.get('success'):
-        return jsonify({'success': False, 'error': result.get('error', '删除失败')})
+        return jsonify({'success': False, 'error': result.get('error', 'Delete failed')})
 
     deleted_count = result.get('deleted_count', 0)
     missing_ids = result.get('missing_ids', [])
-    message = f'已删除 {deleted_count} 个账号'
+    message = f'Deleted {deleted_count} accounts'
     if missing_ids:
-        message += f'，忽略 {len(missing_ids)} 个不存在的账号'
+        message += f'; ignored {len(missing_ids)} accounts that were not found'
 
     return jsonify({
         'success': True,

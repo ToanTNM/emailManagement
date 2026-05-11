@@ -509,10 +509,112 @@ CLOUDFLARE_ADMIN_PASSWORD = os.getenv("CLOUDFLARE_ADMIN_PASSWORD") or os.getenv(
 
 # 临时邮箱分组 ID（系统保留）
 TEMP_EMAIL_GROUP_ID = -1
+DEFAULT_GROUP_NAME = "Default Group"
+LEGACY_DEFAULT_GROUP_NAME = "默认分组"
+DEFAULT_GROUP_DESCRIPTION = "Ungrouped accounts"
+LEGACY_DEFAULT_GROUP_DESCRIPTION = "未分组的邮箱"
+TEMP_EMAIL_GROUP_NAME = "Temp Email"
+LEGACY_TEMP_EMAIL_GROUP_NAME = "临时邮箱"
+TEMP_EMAIL_GROUP_DESCRIPTION = "GPTMail temporary email service"
+LEGACY_TEMP_EMAIL_GROUP_DESCRIPTION = "GPTMail 临时邮箱服务"
+DIRECT_PROXY_VALUE = "direct"
+LEGACY_DIRECT_PROXY_VALUE = "直连"
 
 # 导出验证 Token 存储（内存存储，单 worker 模式下使用）
 # 格式: {user_session_id: {'token': verify_token, 'expires': timestamp}}
 export_verify_tokens = {}
+
+
+def is_temp_email_group_name(name: Any) -> bool:
+    return str(name or '').strip() in {TEMP_EMAIL_GROUP_NAME, LEGACY_TEMP_EMAIL_GROUP_NAME}
+
+
+def is_default_group_name(name: Any) -> bool:
+    return str(name or '').strip() in {DEFAULT_GROUP_NAME, LEGACY_DEFAULT_GROUP_NAME}
+
+
+def normalize_system_group_name(name: Any) -> str:
+    normalized = str(name or '').strip()
+    if is_default_group_name(normalized):
+        return DEFAULT_GROUP_NAME
+    if is_temp_email_group_name(normalized):
+        return TEMP_EMAIL_GROUP_NAME
+    return normalized
+
+
+def migrate_legacy_group_record(cursor, legacy_name: str, canonical_name: str,
+                                legacy_description: str, canonical_description: str,
+                                force_system: int = 0) -> None:
+    legacy_row = cursor.execute(
+        'SELECT id, description FROM groups WHERE name = ? LIMIT 1',
+        (legacy_name,)
+    ).fetchone()
+    canonical_row = cursor.execute(
+        'SELECT id, description FROM groups WHERE name = ? LIMIT 1',
+        (canonical_name,)
+    ).fetchone()
+
+    if legacy_row and canonical_row and legacy_row[0] != canonical_row[0]:
+        legacy_id = legacy_row[0]
+        canonical_id = canonical_row[0]
+        cursor.execute('UPDATE accounts SET group_id = ? WHERE group_id = ?', (legacy_id, canonical_id))
+        cursor.execute('UPDATE project_group_scopes SET group_id = ? WHERE group_id = ?', (legacy_id, canonical_id))
+        cursor.execute('UPDATE project_accounts SET source_group_id = ? WHERE source_group_id = ?', (legacy_id, canonical_id))
+        cursor.execute('DELETE FROM groups WHERE id = ?', (canonical_id,))
+        cursor.execute(
+            'UPDATE groups SET name = ?, description = ?, is_system = ? WHERE id = ?',
+            (canonical_name, canonical_description, int(force_system), legacy_row[0])
+        )
+    elif legacy_row and not canonical_row:
+        cursor.execute(
+            'UPDATE groups SET name = ?, description = ?, is_system = ? WHERE id = ?',
+            (canonical_name, canonical_description, int(force_system), legacy_row[0])
+        )
+
+    cursor.execute(
+        '''
+        UPDATE groups
+        SET description = ?, is_system = ?
+        WHERE name = ?
+          AND (description IS NULL OR TRIM(description) = '' OR description = ?)
+        ''',
+        (canonical_description, int(force_system), canonical_name, legacy_description)
+    )
+
+
+def migrate_legacy_db_values(cursor) -> None:
+    migrate_legacy_group_record(
+        cursor,
+        LEGACY_DEFAULT_GROUP_NAME,
+        DEFAULT_GROUP_NAME,
+        LEGACY_DEFAULT_GROUP_DESCRIPTION,
+        DEFAULT_GROUP_DESCRIPTION,
+        force_system=0,
+    )
+    migrate_legacy_group_record(
+        cursor,
+        LEGACY_TEMP_EMAIL_GROUP_NAME,
+        TEMP_EMAIL_GROUP_NAME,
+        LEGACY_TEMP_EMAIL_GROUP_DESCRIPTION,
+        TEMP_EMAIL_GROUP_DESCRIPTION,
+        force_system=1,
+    )
+
+    for column in ('proxy_url', 'fallback_proxy_url_1', 'fallback_proxy_url_2'):
+        cursor.execute(
+            f"UPDATE groups SET {column} = ? WHERE TRIM(COALESCE({column}, '')) = ?",
+            (DIRECT_PROXY_VALUE, LEGACY_DIRECT_PROXY_VALUE)
+        )
+
+    cursor.execute(
+        '''
+        UPDATE settings
+        SET value = ?
+        WHERE key IN ('telegram_proxy_url')
+          AND TRIM(COALESCE(value, '')) = ?
+        ''',
+        (DIRECT_PROXY_VALUE, LEGACY_DIRECT_PROXY_VALUE)
+    )
 
 # OAuth 配置
 OAUTH_CLIENT_ID = os.getenv("OAUTH_CLIENT_ID", "6daa9f56-5e67-4cb6-ae52-ef89ef912d36")
@@ -958,21 +1060,27 @@ def normalize_group_sort_orders_on_startup(cursor) -> None:
         SELECT id, name, sort_order
         FROM groups
         ORDER BY
-            CASE WHEN name = '临时邮箱' THEN 0 ELSE 1 END,
+            CASE WHEN name IN (?, ?) THEN 0 ELSE 1 END,
             CASE
-                WHEN name = '临时邮箱' THEN 0
+                WHEN name IN (?, ?) THEN 0
                 WHEN COALESCE(sort_order, 0) > 0 THEN sort_order
                 ELSE 2147483647
             END,
             id
-        '''
+        ''',
+        (
+            TEMP_EMAIL_GROUP_NAME,
+            LEGACY_TEMP_EMAIL_GROUP_NAME,
+            TEMP_EMAIL_GROUP_NAME,
+            LEGACY_TEMP_EMAIL_GROUP_NAME,
+        )
     )
     group_rows = cursor.fetchall()
 
     next_sort_order = 1
     for group_id, group_name, sort_order in group_rows:
-        target_sort_order = 0 if group_name == '临时邮箱' else next_sort_order
-        if group_name != '临时邮箱':
+        target_sort_order = 0 if is_temp_email_group_name(group_name) else next_sort_order
+        if not is_temp_email_group_name(group_name):
             next_sort_order += 1
         if sort_order != target_sort_order:
             cursor.execute(
@@ -1420,17 +1528,19 @@ def init_db():
         if 'created_at' not in project_event_columns:
             cursor.execute('ALTER TABLE project_account_events ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
     
+    migrate_legacy_db_values(cursor)
+
     # 创建默认分组
     cursor.execute('''
         INSERT OR IGNORE INTO groups (name, description, color)
-        VALUES ('默认分组', '未分组的邮箱', '#666666')
-    ''')
+        VALUES (?, ?, '#666666')
+    ''', (DEFAULT_GROUP_NAME, DEFAULT_GROUP_DESCRIPTION))
     
     # 创建临时邮箱分组（系统分组）
     cursor.execute('''
         INSERT OR IGNORE INTO groups (name, description, color, is_system)
-        VALUES ('临时邮箱', 'GPTMail 临时邮箱服务', '#00bcf2', 1)
-    ''')
+        VALUES (?, ?, '#00bcf2', 1)
+    ''', (TEMP_EMAIL_GROUP_NAME, TEMP_EMAIL_GROUP_DESCRIPTION))
 
     # 归一化分组排序值，临时邮箱固定在最前，其他分组保留已有相对顺序。
     normalize_group_sort_orders_on_startup(cursor)
