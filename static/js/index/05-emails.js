@@ -515,8 +515,8 @@
                 document.getElementById('emailSelectedCount').textContent = `已选 ${selectedEmailIds.size} 项`;
                 if (selectAllBtn) {
                     selectAllBtn.textContent = currentEmails.length > 0 && selectedEmailIds.size === currentEmails.length
-                        ? '取消全选'
-                        : '全选';
+                        ? translateAppText('取消全选')
+                        : translateAppText('全选');
                 }
                 if (markReadBtn) {
                     const isMarking = markReadBtn.dataset.loading === 'true';

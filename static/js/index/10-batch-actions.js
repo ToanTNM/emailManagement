@@ -40,10 +40,10 @@
             if (batchDeleteBtn) batchDeleteBtn.style.display = 'inline-flex';
             if (selectAllBtn) {
                 const allLoadedChecked = loadedAccountCount > 0 && checked.length === loadedAccountCount;
-                const scopeLabel = isPartialPageLoaded ? '已加载' : '';
-                selectAllBtn.textContent = allLoadedChecked
-                    ? `取消全选${scopeLabel}`
-                    : `全选${scopeLabel}`;
+                const selectAllLabel = allLoadedChecked
+                    ? (isPartialPageLoaded ? '取消全选已加载' : '取消全选')
+                    : (isPartialPageLoaded ? '全选已加载' : '全选');
+                selectAllBtn.textContent = translateAppText(selectAllLabel);
             }
 
             if (checked.length > 0) {

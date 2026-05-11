@@ -549,9 +549,9 @@
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="editForwardEnabled">
-                        <span class="form-label" style="margin: 0;">启用邮件转发</span>
+                        <span class="form-label" style="margin: 0;">${translateAppText('启用邮件转发')}</span>
                     </label>
-                    <div class="form-hint">开启后会按系统设置转发到邮箱或 Telegram。</div>
+                    <div class="form-hint">${translateAppText('开启后会按系统设置转发到邮箱或 Telegram。')}</div>
                 </div>
             `);
         }

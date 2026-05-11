@@ -151,17 +151,17 @@
     <div class="modal" id="editAccountModal" onmousedown="if(event.target === this) hideEditAccountModal()">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>编辑邮箱账号</h3>
+                <h3>Edit mailbox</h3>
                 <button class="modal-close" onclick="hideEditAccountModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editAccountId">
                 <div class="form-group">
-                    <label class="form-label">邮箱地址</label>
+                    <label class="form-label">Email address</label>
                     <input type="text" class="form-input" id="editEmail" placeholder="example@outlook.com">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">邮箱类型</label>
+                    <label class="form-label">Mailbox type</label>
                     <select class="form-select" id="editProviderSelect" onchange="updateEditAccountFields()">
                         <option value="outlook">Outlook OAuth</option>
                         <option value="gmail">Gmail</option>
@@ -170,13 +170,13 @@
                         <option value="126">126</option>
                         <option value="yahoo">Yahoo</option>
                         <option value="aliyun">Aliyun</option>
-                        <option value="2925">2925邮箱</option>
-                        <option value="custom">自定义 IMAP</option>
+                        <option value="2925">2925 Mail</option>
+                        <option value="custom">Custom IMAP</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">密码</label>
-                    <input type="text" class="form-input" id="editPassword" placeholder="可选">
+                    <label class="form-label">Password</label>
+                    <input type="text" class="form-input" id="editPassword" placeholder="Optional">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Client ID</label>
@@ -188,52 +188,52 @@
                 </div>
                 <div id="editImapFields" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label">IMAP 密码 / 授权码</label>
+                        <label class="form-label">IMAP password / app password</label>
                         <input type="text" class="form-input" id="editImapPassword">
                     </div>
                     <div id="editCustomImapFields" style="display: none;">
                         <div class="form-group">
-                            <label class="form-label">IMAP 服务器</label>
+                            <label class="form-label">IMAP server</label>
                             <input type="text" class="form-input" id="editImapHost" placeholder="imap.example.com">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">IMAP 端口</label>
+                            <label class="form-label">IMAP port</label>
                             <input type="number" class="form-input" id="editImapPort" value="993" min="1" max="65535">
                         </div>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">所属分组</label>
+                    <label class="form-label">Group</label>
                     <select class="form-select" id="editGroupSelect">
                         <!-- 分组选项将通过 JS 动态加载 -->
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">排序值</label>
+                    <label class="form-label">Sort order</label>
                     <input type="number" class="form-input" id="editSortOrder" min="0" step="1" value="0">
-                    <div class="form-hint">值越小越靠前，填 0 表示不参与自定义排序。</div>
+                    <div class="form-hint">Smaller values appear first. Use 0 to disable custom sorting.</div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">备注</label>
-                    <textarea class="form-textarea" id="editRemark" placeholder="可选" rows="3"></textarea>
+                    <label class="form-label">Note</label>
+                    <textarea class="form-textarea" id="editRemark" placeholder="Optional" rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">别名邮箱</label>
-                    <textarea class="form-textarea" id="editAliases" placeholder="每行一个别名邮箱，例如&#10;alias1@example.com&#10;alias2@example.com" rows="4"></textarea>
-                    <div class="form-hint">支持多个别名。保存后，可直接用别名邮箱调用对外 API 获取该账号收到的邮件或验证码。</div>
+                    <label class="form-label">Alias emails</label>
+                    <textarea class="form-textarea" id="editAliases" placeholder="One alias per line, for example&#10;alias1@example.com&#10;alias2@example.com" rows="4"></textarea>
+                    <div class="form-hint">Multiple aliases are supported. After saving, the external API can use alias addresses to fetch this account mail or verification codes.</div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">状态</label>
+                    <label class="form-label">Status</label>
                     <select class="form-select" id="editStatus">
-                        <option value="active">正常</option>
-                        <option value="inactive">停用</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
                     </select>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" onclick="deleteCurrentAccount()" style="margin-right: auto;">删除</button>
-                <button class="btn btn-secondary" onclick="hideEditAccountModal()">取消</button>
-                <button class="btn btn-primary" onclick="updateAccount()">保存</button>
+                <button class="btn btn-danger" onclick="deleteCurrentAccount()" style="margin-right: auto;">Delete</button>
+                <button class="btn btn-secondary" onclick="hideEditAccountModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="updateAccount()">Save</button>
             </div>
         </div>
     </div>
