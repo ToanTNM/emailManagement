@@ -7,7 +7,12 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from outlook_web.runtime import is_frozen, notify_startup_error, record_startup_error
+from outlook_web.runtime import (
+    is_frozen,
+    load_local_env,
+    notify_startup_error,
+    record_startup_error,
+)
 from werkzeug.serving import make_server
 
 
@@ -24,6 +29,8 @@ SEGMENT_FILES = (
 )
 
 SEGMENTS_DIR = Path(__file__).resolve().parent / "outlook_web" / "segments"
+
+load_local_env()
 
 def _load_segmented_app():
     if globals().get("_SEGMENTED_APP_LOADED"):
@@ -55,7 +62,7 @@ class DesktopServer:
         if self.failed.is_set():
             raise self.error
         if not self.ready.is_set():
-            raise RuntimeError("桌面服务启动超时")
+            raise RuntimeError("Desktop server startup timed out")
 
     def _serve(self) -> None:
         try:
@@ -103,10 +110,10 @@ def main():
     access_url = f"http://{access_host}:{port}"
 
     print("=" * 60)
-    print("Outlook 邮件 Web 应用")
+    print("Outlook Mail Web App")
     print("=" * 60)
-    print(f"访问地址: {access_url}")
-    print(f"运行模式: {'开发' if debug else '生产'}")
+    print(f"Access URL: {access_url}")
+    print(f"Mode: {'development' if debug else 'production'}")
     print("=" * 60)
 
     try:

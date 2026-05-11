@@ -10,6 +10,9 @@ build/
 venv/
 env/
 ENV/
+.venv/
+.playwright-cli/
+.test-results/
 
 # 数据库文件
 *.db

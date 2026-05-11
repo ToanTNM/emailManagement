@@ -60,6 +60,39 @@ def startup_log_path() -> Path:
     return runtime_root() / STARTUP_LOG_FILE
 
 
+def load_local_env(env_path: Path | None = None) -> Path | None:
+    if is_frozen():
+        return None
+
+    candidate = env_path or (bundle_root() / ".env")
+    if not candidate.is_file():
+        return None
+
+    for raw_line in candidate.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        if line.startswith("export "):
+            line = line[7:].strip()
+
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+
+        os.environ[key] = value
+
+    return candidate
+
+
 def resolve_secret_key() -> str | None:
     secret_key = os.getenv("SECRET_KEY")
     if secret_key:
@@ -88,9 +121,9 @@ def record_startup_error(exc: BaseException) -> Path:
 
 def notify_startup_error(log_path: Path) -> None:
     message = (
-        "OutlookEmail 启动失败。\n\n"
-        f"错误日志已写入:\n{log_path}\n\n"
-        "请把这个日志发给开发者。"
+        "OutlookEmail failed to start.\n\n"
+        f"An error log was written to:\n{log_path}\n\n"
+        "Please send this log to the developer."
     )
 
     if os.name == "nt":

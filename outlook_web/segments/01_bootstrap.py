@@ -1833,7 +1833,7 @@ def migrate_sensitive_data(conn):
             migrated_count += 1
 
     if migrated_count > 0:
-        print(f"已迁移 {migrated_count} 个账号的敏感数据为加密存储")
+        print(f"Migrated sensitive data for {migrated_count} accounts to encrypted storage")
 
 
 # ==================== 应用初始化 ====================
@@ -1849,12 +1849,12 @@ def init_app():
     init_db()
     
     print("=" * 60)
-    print("Outlook 邮件 Web 应用已初始化")
-    print(f"数据库文件: {DATABASE}")
-    print(f"运行目录: {runtime_root()}")
+    print("Outlook Mail Web App initialized")
+    print(f"Database file: {DATABASE}")
+    print(f"Runtime directory: {runtime_root()}")
     print(f"GPTMail API: {GPTMAIL_BASE_URL}")
     print(f"DuckMail API: {DUCKMAIL_BASE_URL}")
-    print(f"Cloudflare Temp Email Worker: {CLOUDFLARE_WORKER_DOMAIN or '未配置'}")
+    print(f"Cloudflare Temp Email Worker: {CLOUDFLARE_WORKER_DOMAIN or 'not configured'}")
     print("=" * 60)
 
 

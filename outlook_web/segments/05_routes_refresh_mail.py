@@ -447,7 +447,7 @@ def finalize_aborted_full_refresh(conn, snapshot_trigger_type: str, log_refresh_
                 conn.rollback()
             except Exception:
                 pass
-            print(f"记录异常刷新结果失败: {str(log_error)}")
+            print(f"Failed to record refresh error result: {str(log_error)}")
         if active_total <= 0:
             active_total = success_count + failed_count
 
@@ -506,7 +506,7 @@ def finalize_aborted_retry_refresh(conn, log_refresh_type: str,
                 conn.rollback()
             except Exception:
                 pass
-            print(f"记录异常重试结果失败: {str(log_error)}")
+            print(f"Failed to record retry error result: {str(log_error)}")
         if active_total <= 0:
             active_total = success_count + failed_count
 
@@ -559,7 +559,7 @@ def log_refresh_result(account_id: int, account_email: str, refresh_type: str, s
                 db.rollback()
             except Exception:
                 pass
-        print(f"记录刷新结果失败: {str(e)}")
+        print(f"Failed to record refresh result: {str(e)}")
         return False
 
 
@@ -589,7 +589,7 @@ def persist_rotated_refresh_token(account_id: int, refresh_token: str, db_conn=N
                 db.rollback()
             except Exception:
                 pass
-        print(f"保存轮换 refresh_token 失败: {str(e)}")
+        print(f"Failed to persist rotated refresh_token: {str(e)}")
         return False
 
 
@@ -619,7 +619,7 @@ def log_forwarding_result(account_id: int, account_email: str, message_id: str, 
                 db.rollback()
             except Exception:
                 pass
-        print(f"记录转发结果失败: {str(e)}")
+        print(f"Failed to record forwarding result: {str(e)}")
         return False
 
 
@@ -1496,7 +1496,7 @@ def stream_selected_refresh_events(account_ids: List[int]):
                     conn.rollback()
                 except Exception:
                     pass
-                print(f"记录异常批量刷新结果失败: {str(log_error)}")
+                print(f"Failed to record batch refresh error result: {str(log_error)}")
         yield f"data: {json.dumps({'type': 'error', 'message': failure_message, 'total': total, 'success_count': success_count, 'failed_count': failed_count, 'failed_list': failed_list, 'refresh_type': 'manual_selected'})}\n\n"
     finally:
         if conn is not None:

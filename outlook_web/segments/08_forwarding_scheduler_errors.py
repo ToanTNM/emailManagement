@@ -1021,11 +1021,11 @@ def scheduled_webdav_backup_task():
         with app.app_context():
             result = run_webdav_backup()
             if result.get('success'):
-                safe_console_print(f"[WebDAV 备份] 已上传 {result.get('filename', '')}")
+                safe_console_print(f"[WebDAV backup] Uploaded {result.get('filename', '')}")
             else:
-                safe_console_print(f"[WebDAV 备份] 跳过或失败：{result.get('error', '未知错误')}")
+                safe_console_print(f"[WebDAV backup] Skipped or failed: {result.get('error', 'Unknown error')}")
     except Exception as exc:
-        safe_console_print(f"[WebDAV 备份] 执行失败：{str(exc)}")
+        safe_console_print(f"[WebDAV backup] Execution failed: {str(exc)}")
 
 
 def add_webdav_backup_job(scheduler, cron_trigger_cls, app_tzinfo) -> bool:
@@ -1035,12 +1035,12 @@ def add_webdav_backup_job(scheduler, cron_trigger_cls, app_tzinfo) -> bool:
     cron_expr = get_setting('webdav_backup_cron', '0 3 * * *').strip()
     cron_error = validate_five_field_cron_expression_for_timezone(cron_expr, get_app_timezone())
     if cron_error:
-        safe_console_print(f"⚠ WebDAV 备份 Cron 表达式无效：{cron_error}")
+        safe_console_print(f"[WARN] Invalid WebDAV backup Cron expression: {cron_error}")
         return False
 
     parts = cron_expr.split()
     if len(parts) != 5:
-        safe_console_print("⚠ WebDAV 备份仅支持 5 段 Cron，未启动备份任务")
+        safe_console_print("[WARN] WebDAV backup only supports 5-field Cron expressions; backup job was not started")
         return False
 
     minute, hour, day, month, day_of_week = parts
@@ -1058,7 +1058,7 @@ def add_webdav_backup_job(scheduler, cron_trigger_cls, app_tzinfo) -> bool:
         name='WebDAV 定时备份',
         replace_existing=True,
     )
-    safe_console_print(f"✓ WebDAV 备份任务已启动：Cron 表达式 '{cron_expr}'")
+    safe_console_print(f"[OK] WebDAV backup job started: Cron expression '{cron_expr}'")
     return True
 
 
@@ -1121,11 +1121,11 @@ def init_scheduler():
                                 )
                                 token_job_added = True
                                 jobs_added = True
-                                safe_console_print(f"✓ 定时刷新任务已启动：Cron 表达式 '{cron_expr}'")
+                                safe_console_print(f"[OK] Token refresh job started: Cron expression '{cron_expr}'")
                             else:
-                                safe_console_print("⚠ Cron 表达式格式错误，回退到默认配置")
+                                safe_console_print("[WARN] Invalid Cron expression format, falling back to the default schedule")
                         except Exception as e:
-                            safe_console_print(f"⚠ Cron 表达式解析失败: {str(e)}，回退到默认配置")
+                            safe_console_print(f"[WARN] Failed to parse Cron expression: {str(e)}. Falling back to the default schedule")
 
                     if not token_job_added:
                         refresh_interval_days = int(get_setting('refresh_interval_days', '30'))
@@ -1137,7 +1137,9 @@ def init_scheduler():
                             replace_existing=True
                         )
                         jobs_added = True
-                        safe_console_print(f"✓ 定时刷新任务已启动：每天凌晨 2:00 检查刷新（周期：{refresh_interval_days} 天）")
+                        safe_console_print(
+                            f"[OK] Token refresh job started: check daily at 2:00 AM (interval: {refresh_interval_days} days)"
+                        )
 
                     forward_interval = max(1, min(60, int(get_setting('forward_check_interval_minutes', '5') or '5')))
                     scheduler.add_job(
@@ -1149,7 +1151,7 @@ def init_scheduler():
                     )
                     jobs_added = True
                 else:
-                    safe_console_print("✓ 定时刷新已禁用")
+                    safe_console_print("[OK] Token refresh is disabled")
 
                 jobs_added = add_webdav_backup_job(scheduler, CronTrigger, app_tzinfo) or jobs_added
 
@@ -1158,17 +1160,17 @@ def init_scheduler():
 
                 scheduler.start()
                 scheduler_instance = scheduler
-                safe_console_print(f"✓ 定时任务调度器已启动（时区：{app_timezone}）")
+                safe_console_print(f"[OK] Scheduler started (timezone: {app_timezone})")
 
             atexit.register(shutdown_scheduler)
 
             return scheduler_instance
         except ImportError:
-            safe_console_print("⚠ APScheduler 未安装，定时任务功能不可用")
-            safe_console_print("  安装命令：pip install APScheduler>=3.10.0")
+            safe_console_print("[WARN] APScheduler is not installed, scheduled tasks are unavailable")
+            safe_console_print("  Install with: pip install APScheduler>=3.10.0")
             return None
         except Exception as e:
-            safe_console_print(f"⚠ 定时任务初始化失败：{str(e)}")
+            safe_console_print(f"[WARN] Failed to initialize scheduled tasks: {str(e)}")
             return None
 
 
@@ -1202,15 +1204,15 @@ def scheduled_refresh_task():
             enable_scheduled = get_setting('enable_scheduled_refresh', 'true').lower() == 'true'
 
             if not enable_scheduled:
-                safe_console_print(f"[定时任务] 定时刷新已禁用，跳过执行")
+                safe_console_print("[scheduled task] Token refresh is disabled, skipping run")
                 return
 
             use_cron = get_setting('use_cron_schedule', 'false').lower() == 'true'
 
             if use_cron:
-                safe_console_print(f"[定时任务] 使用 Cron 调度，直接执行刷新...")
+                safe_console_print("[scheduled task] Using Cron schedule, starting refresh now...")
                 trigger_refresh_internal()
-                safe_console_print(f"[定时任务] Token 刷新完成")
+                safe_console_print("[scheduled task] Token refresh completed")
                 return
 
             refresh_interval_days = int(get_setting('refresh_interval_days', '30'))
@@ -1220,15 +1222,17 @@ def scheduled_refresh_task():
             last_refresh_time = datetime.fromisoformat(last_refresh)
             next_refresh_time = last_refresh_time + timedelta(days=refresh_interval_days)
             if datetime.now() < next_refresh_time:
-                safe_console_print(f"[定时任务] 距离上次刷新未满 {refresh_interval_days} 天，跳过本次刷新")
+                safe_console_print(
+                    f"[scheduled task] Less than {refresh_interval_days} days since the last refresh, skipping this run"
+                )
                 return
 
-        safe_console_print(f"[定时任务] 开始执行 Token 刷新...")
+        safe_console_print("[scheduled task] Starting token refresh...")
         trigger_refresh_internal()
-        safe_console_print(f"[定时任务] Token 刷新完成")
+        safe_console_print("[scheduled task] Token refresh completed")
 
     except Exception as e:
-        safe_console_print(f"[定时任务] 执行失败：{str(e)}")
+        safe_console_print(f"[scheduled task] Execution failed: {str(e)}")
 
 
 ensure_scheduler_started()
@@ -1239,7 +1243,7 @@ def trigger_refresh_internal():
     try:
         result = run_full_refresh('scheduled', 'scheduled')
     except TokenRefreshInProgressError as exc:
-        safe_console_print(f"[定时任务] 跳过执行：{str(exc)}")
+        safe_console_print(f"[scheduled task] Skipping run: {str(exc)}")
         return {
             'type': 'conflict',
             'total': 0,
@@ -1247,7 +1251,10 @@ def trigger_refresh_internal():
             'failed_count': 0,
             'message': str(exc),
         }
-    safe_console_print(f"[定时任务] 刷新结果：总计 {result['total']}，成功 {result['success_count']}，失败 {result['failed_count']}")
+    safe_console_print(
+        f"[scheduled task] Refresh result: total {result['total']}, "
+        f"success {result['success_count']}, failed {result['failed_count']}"
+    )
     return result
 
 
