@@ -12,7 +12,7 @@ env/
 ENV/
 .venv/
 .playwright-cli/
-.test-results/
+test-results/
 
 # 数据库文件
 *.db
